@@ -85,9 +85,13 @@
   .seg.colors button.active[data-v="b"]{background:#38bdf8;color:#06283a}
   .seg.colors button.active[data-v="w"]{background:#f5f5f5;color:#111}
 
-  .inline-row{display:flex;gap:10px;align-items:flex-end}
-  .inline-row .param{margin:0}
-  .inline-row .btn{flex:0 0 auto}
+  .inline-row{display:flex;gap:8px;align-items:flex-end}
+  .inline-row .param{margin:0;flex:2 1 0;min-width:0}
+  .inline-row .btn{flex:1 1 0;min-width:0;height:46px;padding:0}
+  .inline-row .param input{height:46px;padding:0 11px}
+  .step{background:var(--card2);border:1px solid var(--line);color:var(--txt);
+    border-radius:10px;font-size:24px;font-weight:800;line-height:1}
+  .step:not(:disabled):active{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 
   details{margin-top:6px;border-top:1px solid var(--line);padding-top:12px}
   summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;user-select:none}
@@ -107,7 +111,7 @@
 
   .log{width:100%;max-width:480px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
     color:var(--muted);background:#0d0f0c;border:1px solid var(--line);border-radius:10px;
-    padding:10px;height:120px;overflow-y:auto;white-space:pre-wrap;line-height:1.45}
+    padding:10px;height:84px;overflow-y:auto;white-space:pre-wrap;line-height:1.45}
   .log .tx{color:var(--accent)}
   .log .rx{color:#60a5fa}
   .log .err{color:var(--danger)}
@@ -178,6 +182,23 @@
   <div class="kbdhint" data-i18n="kbdHint">Клавиши ↑↓←→ — движение, пробел — СТОП</div>
 </div>
 
+<!-- ===== Звук ===== -->
+<div class="card">
+  <h3 data-i18n="soundTitle">Звук</h3>
+  <div class="inline-row">
+    <button class="btn step" onclick="stepSound(-1)" aria-label="−" title="−">−</button>
+    <div class="param">
+      <label data-i18n="soundFile">Имя файла (4 символа, напр. x005)</label>
+      <input id="soundFile" type="text" maxlength="4" autocapitalize="off" autocomplete="off"
+             spellcheck="false" value="x005" placeholder="x005"
+             style="text-transform:lowercase;letter-spacing:2px;font-family:ui-monospace,Consolas,monospace">
+    </div>
+    <button class="btn step" onclick="stepSound(1)" aria-label="+" title="+">+</button>
+    <button id="soundPlay" class="btn btn-primary" onclick="playSound()" disabled data-i18n="play">Играть</button>
+  </div>
+  <div class="hint" data-i18n="soundHint">Блокирующая: робот играет /spiffs/x{NNN}.mp3 (только x000–x998; n###, буквы, x999+ недоступны). Список — Audio Files Reference на docs.primastem.com.</div>
+</div>
+
 <!-- ===== Светодиоды ===== -->
 <div class="card">
   <h3 data-i18n="ledTitle">Светодиоды</h3>
@@ -200,21 +221,6 @@
     </div>
   </div>
   <button id="ledApply" class="btn btn-primary" onclick="applyLed()" disabled data-i18n="ledApply">Вспышка</button>
-</div>
-
-<!-- ===== Звук ===== -->
-<div class="card">
-  <h3 data-i18n="soundTitle">Звук</h3>
-  <div class="inline-row">
-    <div class="param" style="flex:1">
-      <label data-i18n="soundFile">Имя файла (4 символа, напр. x005)</label>
-      <input id="soundFile" type="text" maxlength="4" autocapitalize="off" autocomplete="off"
-             spellcheck="false" value="x005" placeholder="x005"
-             style="text-transform:lowercase;letter-spacing:2px;font-family:ui-monospace,Consolas,monospace">
-    </div>
-    <button id="soundPlay" class="btn btn-primary" onclick="playSound()" disabled data-i18n="play">Играть</button>
-  </div>
-  <div class="hint" data-i18n="soundHint">Блокирующая: робот играет /spiffs/x{NNN}.mp3 (только x000–x998; n###, буквы, x999+ недоступны). Список — Audio Files Reference на docs.primastem.com.</div>
 </div>
 
 <!-- ===== Доп. настройки ===== -->
@@ -547,12 +553,26 @@ function soundIndex(s){
   return n;
 }
 function fileForIndex(n){ return 'x'+String(n).padStart(3,'0')+'.mp3'; }
+/* −/+ steppers: read current index from whatever was typed (5, 05, 005, x005),
+   step ±1, clamp 0..998, rewrite the field in canonical xNNN form. */
+function setSoundIndex(n){
+  n=Math.max(0,Math.min(998,Math.floor(n)));
+  const inp=document.getElementById('soundFile');
+  inp.value='x'+String(n).padStart(3,'0');
+  // НЕ сохраняем при кручении степпера — только при фактическом воспроизведении (playSound)
+}
+function stepSound(d){
+  const cur=soundIndex(document.getElementById('soundFile').value);
+  setSoundIndex((cur===null?0:cur)+d);
+}
 function playSound(){
   const inp=document.getElementById('soundFile');
   const raw=(inp.value||'').trim().toLowerCase();
   const idx=soundIndex(raw);
   if(idx===null){ logLine('sound: number 0–998 (e.g. x005). x999+, n###, letters not playable.','err'); return; }
-  localStorage.setItem('ps_sound',raw);
+  const canon='x'+String(idx).padStart(3,'0');
+  document.getElementById('soundFile').value=canon;   // нормализуем поле к xNNN
+  localStorage.setItem('ps_sound',canon);             // сохраняем только сыгранное, канонично
   logLine('sound → '+fileForIndex(idx));
   send(CMD.sound, idx, 0, true);   // BLOCKING — firmware plays blocking, emits busy/free
 }
@@ -614,7 +634,7 @@ function restoreParams(){
   const d=localStorage.getItem('ps_distance'), a=localStorage.getItem('ps_angle'), s=localStorage.getItem('ps_sound');
   if(d!==null) document.getElementById('distance').value=d;
   if(a!==null) document.getElementById('angle').value=a;
-  if(s!==null) document.getElementById('soundFile').value=s;
+  if(s!==null) document.getElementById('soundFile').value=s;  // иначе — дефолт x005 (первый старт)
 }
 
 /* keyboard control — only when focus is not in an input */
