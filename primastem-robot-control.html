@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PrimaSTEM Robot Control</title>
+<style>
+  :root{
+    /* PrimaSTEM dark theme (docs.primastem.com) */
+    --bg:#121512; --card:#1c1f1a; --card2:#2a2d27; --line:rgba(255,255,255,.10);
+    --txt:#ffffff; --muted:#a1a39f; --accent:#68b833; --accent2:#4d8825;
+    --on-accent:#ffffff;
+    --danger:#ef4444; --danger2:#b91c1c; --ok:#68b833; --busy:#f59e0b;
+    --shadow:0 6px 20px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b2417,#121512 60%);
+    color:var(--txt);min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:16px;gap:14px;
+  }
+  header{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.3px}
+  .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;color:var(--on-accent);font-weight:900;font-size:16px}
+  .lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .lang button{background:transparent;color:var(--muted);border:0;padding:6px 10px;font-weight:700;cursor:pointer;font-size:13px}
+  .lang button.active{background:var(--accent);color:var(--on-accent)}
+
+  .card{width:100%;max-width:480px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+
+  .conn-row{display:flex;gap:10px;align-items:center}
+  .btn{border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-size:15px;cursor:pointer;
+    transition:transform .05s ease,opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn:active{transform:scale(.97)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--on-accent);flex:1}
+  .btn-ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+
+  .status{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px;color:var(--muted)}
+  .dot{width:11px;height:11px;border-radius:50%;background:#55636f;transition:background .2s,box-shadow .2s}
+  .dot.connected{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.busy{background:var(--busy);box-shadow:0 0 8px var(--busy)}
+
+  .params{display:flex;gap:12px;margin-bottom:14px}
+  .param{flex:1}
+  .param label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600}
+  .param input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;
+    color:var(--txt);padding:11px;font-size:18px;text-align:center;font-weight:700;outline:none}
+  .param input:focus{border-color:var(--accent)}
+
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,68px);gap:10px}
+  .pad .btn{font-size:26px;height:100%}
+  .dir{background:var(--card2);border:1px solid var(--line);color:var(--txt)}
+  .dir:not(:disabled):active{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  #fwd{grid-column:2;grid-row:1}
+  #left{grid-column:1;grid-row:2}
+  #stop{grid-column:2;grid-row:2;background:linear-gradient(135deg,var(--danger),var(--danger2));color:#fff;font-size:15px;font-weight:800}
+  #right{grid-column:3;grid-row:2}
+  #back{grid-column:2;grid-row:3}
+
+  details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;user-select:none}
+  .uuid-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  .uuid-grid label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  .uuid-grid input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);padding:8px;font-size:13px;text-align:center;outline:none}
+  .hint{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+  .log{width:100%;max-width:480px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    color:var(--muted);background:#0d0f0c;border:1px solid var(--line);border-radius:10px;
+    padding:10px;height:120px;overflow-y:auto;white-space:pre-wrap;line-height:1.45}
+  .log .tx{color:var(--accent)}
+  .log .rx{color:#60a5fa}
+  .log .err{color:var(--danger)}
+  .warn{width:100%;max-width:480px;background:#3b2a12;border:1px solid #6b4d1f;color:#fbbf24;
+    border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5;display:none}
+  footer{max-width:480px;font-size:11px;color:#55636f;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><div class="logo">P</div><span>PrimaSTEM</span></div>
+  <div class="lang">
+    <button id="lang-en" class="active" onclick="setLang('en')">EN</button>
+    <button id="lang-fr" onclick="setLang('fr')">FR</button>
+    <button id="lang-ru" onclick="setLang('ru')">RU</button>
+  </div>
+</header>
+
+<div id="compat" class="warn"></div>
+
+<div class="card">
+  <div class="conn-row">
+    <button id="connectBtn" class="btn btn-primary" onclick="toggleConnect()"><span data-i18n="connect">Подключиться</span></button>
+  </div>
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText" data-i18n="disconnected">Не подключено</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="params">
+    <div class="param">
+      <label data-i18n="distance">Дистанция (мм)</label>
+      <input id="distance" type="number" inputmode="numeric" value="150" min="0" max="4294967295">
+    </div>
+    <div class="param">
+      <label data-i18n="angle">Угол (°)</label>
+      <input id="angle" type="number" inputmode="numeric" value="90" min="0" max="4294967295">
+    </div>
+  </div>
+
+  <div class="pad">
+    <button id="fwd"   class="btn dir" data-cmd="f" disabled>▲</button>
+    <button id="left"  class="btn dir" data-cmd="l" disabled>◀</button>
+    <button id="stop"  class="btn"     disabled data-i18n="stop">СТОП</button>
+    <button id="right" class="btn dir" data-cmd="r" disabled>▶</button>
+    <button id="back"  class="btn dir" data-cmd="b" disabled>▼</button>
+  </div>
+
+  <details>
+    <summary data-i18n="advanced">⚙ Настройки BLE (UUID)</summary>
+    <div class="uuid-grid">
+      <div><label data-i18n="svc">Сервис</label><input id="uuidService" value="bd9e1632-0100-4d63-ad5f-27f115379843"></div>
+      <div><label data-i18n="cmd">Команда</label><input id="uuidCmd" value="bd9e1632-0101-4d63-ad5f-27f115379843"></div>
+      <div><label data-i18n="state">Статус</label><input id="uuidState" value="bd9e1632-0102-4d63-ad5f-27f115379843"></div>
+    </div>
+    <div class="hint" data-i18n="uuidHint">По умолчанию заложены короткие UUID на стандартной базе Bluetooth. Если прошивка использует кастомные 128-битные UUID — вставь сюда их полные значения (формат 0000xxxx-0000-1000-8000-00805f9b34fb) и переподключись.</div>
+  </details>
+</div>
+
+<div class="log" id="log"></div>
+
+<footer><span data-i18n="foot">Web Bluetooth · работает в Chrome / Edge на Android, Windows, macOS, Linux. На iPhone/iPad — через браузер Bluefy.</span></footer>
+
+<script>
+/* ============ i18n ============ */
+const I18N = {
+  ru:{connect:"Подключиться",disconnect:"Отключиться",disconnected:"Не подключено",
+      connecting:"Подключение…",connected:"Подключено · готов",busy:"Робот выполняет команду…",
+      distance:"Дистанция (мм)",angle:"Угол (°)",stop:"СТОП",advanced:"⚙ Настройки BLE (UUID)",
+      svc:"Сервис",cmd:"Команда",state:"Статус",
+      uuidHint:"По умолчанию заложены короткие UUID на стандартной базе Bluetooth. Если прошивка использует кастомные 128-битные UUID — вставь сюда их полные значения (формат 0000xxxx-0000-1000-8000-00805f9b34fb) и переподключись.",
+      foot:"Web Bluetooth · работает в Chrome / Edge на Android, Windows, macOS, Linux. На iPhone/iPad — через браузер Bluefy.",
+      noWebBT:"⚠ Этот браузер не поддерживает Web Bluetooth. Открой страницу в Chrome или Edge (на ПК/Android), либо в браузере Bluefy на iOS.",
+      needHTTPS:"⚠ Web Bluetooth не работает при открытии файла напрямую (file://). Нужен HTTPS или localhost: размести файл на GitHub Pages / своём сайте по https://, либо запусти локальный сервер (python -m http.server) и открой http://localhost:8000."},
+  en:{connect:"Connect",disconnect:"Disconnect",disconnected:"Not connected",
+      connecting:"Connecting…",connected:"Connected · ready",busy:"Robot is executing…",
+      distance:"Distance (mm)",angle:"Angle (°)",stop:"STOP",advanced:"⚙ BLE settings (UUID)",
+      svc:"Service",cmd:"Command",state:"State",
+      uuidHint:"Defaults are short UUIDs on the standard Bluetooth base. If the firmware uses custom 128-bit UUIDs, paste their full values here (format 0000xxxx-0000-1000-8000-00805f9b34fb) and reconnect.",
+      foot:"Web Bluetooth · works in Chrome / Edge on Android, Windows, macOS, Linux. On iPhone/iPad use the Bluefy browser.",
+      noWebBT:"⚠ This browser does not support Web Bluetooth. Open this page in Chrome or Edge (desktop/Android), or in the Bluefy browser on iOS.",
+      needHTTPS:"⚠ Web Bluetooth does not work from a directly-opened file (file://). It needs HTTPS or localhost: host the file on GitHub Pages / your site over https://, or run a local server (python -m http.server) and open http://localhost:8000."},
+  fr:{connect:"Se connecter",disconnect:"Déconnecter",disconnected:"Non connecté",
+      connecting:"Connexion…",connected:"Connecté · prêt",busy:"Le robot exécute une commande…",
+      distance:"Distance (mm)",angle:"Angle (°)",stop:"STOP",advanced:"⚙ Réglages BLE (UUID)",
+      svc:"Service",cmd:"Commande",state:"État",
+      uuidHint:"Par défaut, des UUID courts sur la base Bluetooth standard sont utilisés. Si le firmware utilise des UUID 128 bits personnalisés, collez ici leurs valeurs complètes (format 0000xxxx-0000-1000-8000-00805f9b34fb) et reconnectez-vous.",
+      foot:"Web Bluetooth · fonctionne dans Chrome / Edge sur Android, Windows, macOS, Linux. Sur iPhone/iPad, via le navigateur Bluefy.",
+      noWebBT:"⚠ Ce navigateur ne prend pas en charge Web Bluetooth. Ouvrez cette page dans Chrome ou Edge (PC/Android), ou dans le navigateur Bluefy sur iOS.",
+      needHTTPS:"⚠ Web Bluetooth ne fonctionne pas avec un fichier ouvert directement (file://). Il faut HTTPS ou localhost : hébergez le fichier sur GitHub Pages / votre site en https://, ou lancez un serveur local (python -m http.server) et ouvrez http://localhost:8000."}
+};
+let lang = localStorage.getItem('ps_lang') || 'en';
+if(!I18N[lang]) lang='en';
+function t(k){return (I18N[lang]&&I18N[lang][k])||k;}
+function setLang(l){
+  lang=l; localStorage.setItem('ps_lang',l);
+  document.documentElement.lang=l;
+  ['en','fr','ru'].forEach(code=>{
+    const b=document.getElementById('lang-'+code);
+    if(b) b.classList.toggle('active',l===code);
+  });
+  document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n);});
+  // refresh dynamic status label
+  updateStatus(state.status);
+  checkCompat(true);
+}
+
+/* ============ BLE ============ */
+const CMD = { move:0x02, break:0xFF };
+let device=null, server=null, cmdChar=null, stateChar=null;
+const state = { connected:false, robotBusy:false, status:'disconnected' };
+
+function parseUuid(v){
+  v=(v||'').trim();
+  if(/^0x[0-9a-fA-F]+$/.test(v)) return parseInt(v,16);      // short 16/32-bit
+  if(/^[0-9a-fA-F]+$/.test(v) && v.length<=8) return parseInt(v,16);
+  return v.toLowerCase();                                     // full 128-bit string
+}
+
+function logLine(msg,cls){
+  const el=document.getElementById('log');
+  const time=new Date().toLocaleTimeString();
+  el.innerHTML += `<span class="${cls||''}">[${time}] ${msg}</span>\n`;
+  el.scrollTop=el.scrollHeight;
+}
+function hex(bytes){return Array.from(bytes).map(b=>'0x'+b.toString(16).padStart(2,'0')).join(' ');}
+
+function updateStatus(s){
+  state.status=s;
+  const dot=document.getElementById('dot');
+  const txt=document.getElementById('statusText');
+  dot.className='dot';
+  if(s==='connected'){dot.classList.add('connected');txt.textContent=t('connected');}
+  else if(s==='busy'){dot.classList.add('busy');txt.textContent=t('busy');}
+  else if(s==='connecting'){txt.textContent=t('connecting');}
+  else {txt.textContent=t('disconnected');}
+}
+
+function setControls(enabled){
+  document.querySelectorAll('.pad .btn').forEach(b=>b.disabled=!enabled);
+}
+
+function checkCompat(silent){
+  const box=document.getElementById('compat');
+  if(!('bluetooth' in navigator)){
+    box.style.display='block'; box.textContent=t('noWebBT');
+    document.getElementById('connectBtn').disabled=true;
+    return false;
+  }
+  if(location.protocol!=='https:' && location.hostname!=='localhost' && location.hostname!=='127.0.0.1'){
+    box.style.display='block'; box.textContent=t('needHTTPS');
+    return true;
+  }
+  box.style.display='none';
+  return true;
+}
+
+async function toggleConnect(){
+  if(state.connected){ disconnect(); return; }
+  await connect();
+}
+
+async function connect(){
+  const svcUuid   = parseUuid(document.getElementById('uuidService').value);
+  const cmdUuid   = parseUuid(document.getElementById('uuidCmd').value);
+  const stateUuid = parseUuid(document.getElementById('uuidState').value);
+  try{
+    updateStatus('connecting');
+    logLine('requestDevice (namePrefix "ROBOT")…');
+    device = await navigator.bluetooth.requestDevice({
+      filters:[{namePrefix:'ROBOT'}],
+      optionalServices:[svcUuid]
+    });
+    device.addEventListener('gattserverdisconnected', onDisconnected);
+    logLine('device: '+(device.name||device.id));
+    server = await device.gatt.connect();
+    const service = await server.getPrimaryService(svcUuid);
+    cmdChar = await service.getCharacteristic(cmdUuid);
+    logLine('command characteristic OK');
+    try{
+      stateChar = await service.getCharacteristic(stateUuid);
+      await stateChar.startNotifications();
+      stateChar.addEventListener('characteristicvaluechanged', onStateChanged);
+      logLine('state notifications ON');
+    }catch(e){ logLine('state characteristic not found — running without busy/free feedback','err'); stateChar=null; }
+
+    state.connected=true; state.robotBusy=false;
+    document.querySelector('#connectBtn span').textContent=t('disconnect');
+    updateStatus('connected'); setControls(true);
+    logLine('CONNECTED');
+  }catch(err){
+    logLine('connect error: '+err.message,'err');
+    updateStatus('disconnected');
+    cleanup();
+  }
+}
+
+function disconnect(){
+  if(device && device.gatt.connected) device.gatt.disconnect();
+  else onDisconnected();
+}
+function onDisconnected(){
+  logLine('disconnected');
+  cleanup();
+}
+function cleanup(){
+  state.connected=false; state.robotBusy=false;
+  cmdChar=null; stateChar=null; server=null;
+  document.querySelector('#connectBtn span').textContent=t('connect');
+  updateStatus('disconnected'); setControls(false);
+}
+
+function onStateChanged(e){
+  const v=e.target.value.getUint8(0);
+  state.robotBusy = (v===0x01);
+  logLine('state ← '+(v===0x01?'BUSY (0x01)':'FREE (0x00)'),'rx');
+  if(state.robotBusy){ updateStatus('busy'); setControls(false); document.getElementById('stop').disabled=false; }
+  else { updateStatus('connected'); setControls(true); }
+}
+
+function buildPacket(type,main,second){
+  const buf=new ArrayBuffer(9);
+  const dv=new DataView(buf);
+  dv.setUint8(0,type);
+  dv.setUint32(1,main>>>0,true);   // little-endian
+  dv.setUint32(5,second>>>0,true); // little-endian
+  return buf;
+}
+
+async function send(type,main,second){
+  if(!cmdChar){ logLine('not connected','err'); return; }
+  const buf=buildPacket(type,main,second);
+  logLine('TX → '+hex(new Uint8Array(buf)),'tx');
+  try{
+    if(cmdChar.writeValueWithResponse) await cmdChar.writeValueWithResponse(buf);
+    else await cmdChar.writeValue(buf);
+  }catch(err){ logLine('write error: '+err.message,'err'); }
+}
+
+function clampU32(n){ n=Math.floor(Number(n)); if(!isFinite(n)||n<0)n=0; if(n>4294967295)n=4294967295; return n; }
+
+function move(dir){
+  const dist  = clampU32(document.getElementById('distance').value);
+  const angle = clampU32(document.getElementById('angle').value);
+  const size  = (dir==='f'||dir==='b') ? dist : angle;
+  send(CMD.move, dir.charCodeAt(0), size);
+}
+function stop(){ send(CMD.break,0,0); }
+
+/* ============ wire up ============ */
+document.querySelectorAll('.pad .dir').forEach(btn=>{
+  btn.addEventListener('click',()=>move(btn.dataset.cmd));
+});
+document.getElementById('stop').addEventListener('click',stop);
+
+setLang(lang);
+checkCompat();
+logLine('PrimaSTEM Robot Control — ready');
+</script>
+</body>
+</html>
