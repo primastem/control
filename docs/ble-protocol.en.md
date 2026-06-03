@@ -84,7 +84,36 @@ A control command is **9 bytes** long and is described by the `cmd` structure:
 | `main` | 4 bytes | `uint32_t` | Main command parameter |
 | `second` | 4 bytes | `uint32_t` | Auxiliary command parameter |
 
-> ℹ️ **Byte order.** In the example below, parameters are sent little-endian: the value `0x66` is transmitted as `0x66 0x00 0x00 0x00`. Use this order when building the packet.
+> ℹ️ **Byte order.** Both `main` and `second` are sent little-endian (least-significant byte first): the value `0x66` is transmitted as `0x66 0x00 0x00 0x00`. Use this order when building the packet.
+
+### How to encode character parameters (`'f'`, `'l'`, `'r'`…)
+
+Many commands (`cmd_move`, `cmd_led`, `cmd_conf`) expect the **ASCII code of a single character** in `main`/`second`, not a string. The character goes into the **low (rightmost) byte** of the 32-bit value, the rest are zero. With little-endian transmission that byte comes **first** in the packet.
+
+| Char | ASCII | `uint32` value | Bytes in packet (LE) |
+| --- | --- | --- | --- |
+| `'f'` | `0x66` | `0x00000066` | `66 00 00 00` |
+| `'b'` | `0x62` | `0x00000062` | `62 00 00 00` |
+| `'l'` | `0x6C` | `0x0000006C` | `6C 00 00 00` |
+| `'r'` | `0x72` | `0x00000072` | `72 00 00 00` |
+| `'g'` | `0x67` | `0x00000067` | `67 00 00 00` |
+| `'w'` | `0x77` | `0x00000077` | `77 00 00 00` |
+| `'i'` | `0x69` | `0x00000069` | `69 00 00 00` |
+
+JavaScript example (Web Bluetooth):
+```js
+function buildPacket(type, main, second){
+  const dv = new DataView(new ArrayBuffer(9));
+  dv.setUint8(0, type);
+  dv.setUint32(1, main  >>> 0, true);  // little-endian
+  dv.setUint32(5, second >>> 0, true); // little-endian
+  return dv.buffer;
+}
+// move forward 150 mm:
+buildPacket(0x02, 'f'.charCodeAt(0), 150);
+```
+
+`cmd_sound` is the exception: its `main` is a **number** (the file index), not a character (see below).
 
 ## Command List
 
@@ -184,27 +213,113 @@ Starts the robot configuration process.
 ### `cmd_lvl` (`0x06`)
 > ⚠️ This command is present in the firmware enum `ble_cmd_type_t`, but its purpose and parameters (`main`, `second`) are not described in the source materials. Needs clarification.
 
-## Example: Move Forward 90 mm
+## Ready-to-Use Packet Examples (hex)
 
-| `type` | `main` | `second` |
+All 9 bytes, in transmission order. Verified on the test robot ROBOTZCTN.
+
+### Movement (`cmd_move`, 0x02) — blocking
+
+| Action | `main` | `second` | Packet (9 bytes) |
+| --- | --- | --- | --- |
+| Forward 90 mm | `'f'` | `90` (`0x5A`) | `02 66 00 00 00 5A 00 00 00` |
+| Forward 150 mm | `'f'` | `150` (`0x96`) | `02 66 00 00 00 96 00 00 00` |
+| Backward 100 mm | `'b'` | `100` (`0x64`) | `02 62 00 00 00 64 00 00 00` |
+| Turn left 90° | `'l'` | `90` (`0x5A`) | `02 6C 00 00 00 5A 00 00 00` |
+| Turn right 90° | `'r'` | `90` (`0x5A`) | `02 72 00 00 00 5A 00 00 00` |
+| Turn right 144° | `'r'` | `144` (`0x90`) | `02 72 00 00 00 90 00 00 00` |
+
+> The size (`second`) is a plain decimal `uint32` in LE. 150 = `0x96` → `96 00 00 00`. 300 = `0x12C` → `2C 01 00 00`.
+
+### LEDs (`cmd_led`, 0x03) — blocking
+
+`main` — LED (`'l'`/`'r'`/`'b'`), `second` — color (`'r'`/`'g'`/`'b'`/`'w'`). The LEDs change color for ~1 s, then return to white.
+
+| Action | `main` | `second` | Packet (9 bytes) |
+| --- | --- | --- | --- |
+| Both LEDs white | `'b'` | `'w'` | `03 62 00 00 00 77 00 00 00` |
+| Both LEDs red | `'b'` | `'r'` | `03 62 00 00 00 72 00 00 00` |
+| Left LED green | `'l'` | `'g'` | `03 6C 00 00 00 67 00 00 00` |
+| Right LED cyan | `'r'` | `'b'` | `03 72 00 00 00 62 00 00 00` |
+
+### Sound (`cmd_sound`, 0x04) — blocking
+
+`main` — file number `0…998`, the robot plays `/spiffs/x%03d.mp3`. `second` is unused.
+
+| Action | `main` | File | Packet (9 bytes) |
+| --- | --- | --- | --- |
+| Reaction "Hi!" | `5` | `x005.mp3` | `04 05 00 00 00 00 00 00 00` |
+| Reaction "Bye!" | `9` | `x009.mp3` | `04 09 00 00 00 00 00 00 00` |
+| Letter (x700) | `700` (`0x2BC`) | `x700.mp3` | `04 BC 02 00 00 00 00 00 00` |
+| System (x990) | `990` (`0x3DE`) | `x990.mp3` | `04 DE 03 00 00 00 00 00 00` |
+
+> `main ≥ 999` is ignored (logs `Too long number audio file`). Only `x000`–`x998` are reachable.
+
+### Calibration (`cmd_conf`, 0x05) — blocking
+
+| Action | `main` | `second` | Packet (9 bytes) |
+| --- | --- | --- | --- |
+| Length calibration (150 mm reference) | `'l'` | `150` (`0x96`) | `05 6C 00 00 00 96 00 00 00` |
+| IMU calibration | `'i'` | `0` | `05 69 00 00 00 00 00 00 00` |
+
+### Robot name (`cmd_name`, 0xAA) — Reset
+
+`main` — 4 ASCII characters of the name, placed byte by byte (char[0] is the low byte). The robot becomes `ROBOT<chars>` and reboots.
+
+| Action | `main` | Packet (9 bytes) |
 | --- | --- | --- |
-| `cmd_move` | forward | 90 mm |
-| `0x02` | `'f'` | `90` |
-| `0x02` | `0x00000066` | `0x0000005A` |
+| Name `ROBOTABCD` | `'A','B','C','D'` | `AA 41 42 43 44 00 00 00 00` |
 
-Resulting packet to send (e.g., via nRF Connect):
+### Stop (`cmd_break`, 0xFF) — non-blocking
+
+Interrupts the current command. Parameters are zero.
 
 ```
-0x02 0x66 0x00 0x00 0x00 0x5A 0x00 0x00 0x00
+FF 00 00 00 00 00 00 00 00
+```
+
+### Raw test of `cmd_lvl` (0x06)
+
+Purpose unknown — use for empirical probing. Example with `main=5`:
+
+```
+06 05 00 00 00 00 00 00 00
 ```
 
 ## Robot Name
 
 Before the first connection, the robot is named `ROBOTAAAA`. You can connect to it and change the last 4 characters with the `cmd_name` command. The robot saves these characters, and afterward this robot can be found by them.
 
-For example, sending `[0xAA, 'ABCD', 0x00000000]` sets the name `ROBOTABCD`. The name can be changed at any time, even if a name other than `ROBOTAAAA` is already set.
+For example, sending `[0xAA, 'ABCD', 0x00000000]` sets the name `ROBOTABCD` — packet `AA 41 42 43 44 00 00 00 00`. The name can be changed at any time, even if a name other than `ROBOTAAAA` is already set.
+
+## Client Connection (Web Bluetooth)
+
+```js
+const SVC = 'bd9e1632-0100-4d63-ad5f-27f115379843';
+const CMD = 'bd9e1632-0101-4d63-ad5f-27f115379843';
+const STT = 'bd9e1632-0102-4d63-ad5f-27f115379843';
+
+const device  = await navigator.bluetooth.requestDevice({
+  filters: [{ namePrefix: 'ROBOT' }],   // every robot is named ROBOTxxxx
+  optionalServices: [SVC]
+});
+const server  = await device.gatt.connect();
+const service = await server.getPrimaryService(SVC);
+const cmdChar = await service.getCharacteristic(CMD);   // write commands
+const sttChar = await service.getCharacteristic(STT);   // notify status
+
+await sttChar.startNotifications();
+sttChar.addEventListener('characteristicvaluechanged', e => {
+  const busy = e.target.value.getUint8(0) === 0x01;     // 0=free, 1=busy
+});
+
+// send a command (writeValueWithResponse, since the characteristic is R/W):
+await cmdChar.writeValueWithResponse(buildPacket(0x02, 'f'.charCodeAt(0), 150));
+```
+
+> ⚠️ Web Bluetooth works only over `https://` or `localhost` (not from `file://`). Supported: Chrome/Edge on Android, Windows, macOS, Linux. On iOS — only via the Bluefy browser.
 
 ## Notes
 
-- Non-blocking commands do not trigger a status update.
+- Non-blocking commands (`cmd_log`, `cmd_break`) do not send a status. All other executable commands are blocking: wait for `free` before the next one.
 - A command marked as `Reset` (`cmd_name`) causes the robot to reboot.
+- **Hardware quirk (per-unit):** on the test robot ROBOTZCTN the left and right LEDs are physically swapped — `'l'` lights the right LED and `'r'` the left. This is a build defect of that specific robot, not the protocol; compensate on the client side if needed.
