@@ -108,7 +108,7 @@ typedef enum __attribute__((packed)) {
 | `cmd_log` | `0x01` | Нет |
 | `cmd_move` | `0x02` | Да |
 | `cmd_led` | `0x03` | Да |
-| `cmd_sound` | `0x04` | Нет |
+| `cmd_sound` | `0x04` | Да |
 | `cmd_conf` | `0x05` | Да |
 | `cmd_lvl` | `0x06` | — (не описана) |
 | `cmd_name` | `0xAA` | Reset |
@@ -150,8 +150,27 @@ typedef enum __attribute__((packed)) {
   - `'w'` — белый
 
 ### `cmd_sound` (`0x04`)
-Воспроизводит аудиофайл.
-- `main` — название аудиофайла для воспроизведения (ожидается формат имени `XXX.mp3`).
+Воспроизводит аудиофайл. **Блокирующая** (вопреки старой версии этого документа): робот отправляет `busy`, проигрывает файл, затем `free`.
+- `main` — **число** файла (`uint32`), `0…998`. Робот формирует имя как `sprintf("/spiffs/x%03d.mp3", main)`, то есть всегда `x` + 3 цифры с ведущими нулями. Например `main=5` → `/spiffs/x005.mp3`, `main=700` → `/spiffs/x700.mp3`.
+- `second` — не используется.
+- ⚠️ Если `main ≥ 999` — файл не воспроизводится (прошивка пишет в лог `Too long number audio file`).
+- ⚠️ Доступны **только** файлы `x000`–`x998`. Имена с другим префиксом из Audio Files Reference (`n###` числа, `cfor`/`sqrt` и т. п.) по этому каналу недоступны — префикс жёстко зашит как `x`.
+
+Подтверждено исходником прошивки:
+```c
+case cmd_prop[ble_cmd_sound].code:
+    is_audio_play = true;
+    if (cmd.main < 999) {
+        ble_cmd_state_send(busy_state);
+        sprintf(audio_name_buffer, "/spiffs/x%03d.mp3", (int) cmd.main);
+        cmd_disable_led_timer();
+        audio_play_file_blocking(audio_name_buffer);
+        cmd_enable_led_timer();
+        ble_cmd_state_send(free_state);
+    } else
+        ESP_LOGW(tag, "Too long number audio file.");
+    break;
+```
 
 ### `cmd_conf` (`0x05`)
 Запускает процесс настройки робота.

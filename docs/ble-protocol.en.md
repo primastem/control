@@ -108,7 +108,7 @@ typedef enum __attribute__((packed)) {
 | `cmd_log` | `0x01` | No |
 | `cmd_move` | `0x02` | Yes |
 | `cmd_led` | `0x03` | Yes |
-| `cmd_sound` | `0x04` | No |
+| `cmd_sound` | `0x04` | Yes |
 | `cmd_conf` | `0x05` | Yes |
 | `cmd_lvl` | `0x06` | — (undocumented) |
 | `cmd_name` | `0xAA` | Reset |
@@ -150,8 +150,27 @@ Turns the robot's LEDs on/off.
   - `'w'` — white
 
 ### `cmd_sound` (`0x04`)
-Plays an audio file.
-- `main` — name of the audio file to play (file names are expected in the `XXX.mp3` format).
+Plays an audio file. **Blocking** (contrary to an earlier version of this doc): the robot sends `busy`, plays the file, then `free`.
+- `main` — the file **number** (`uint32`), `0…998`. The robot builds the name with `sprintf("/spiffs/x%03d.mp3", main)`, i.e. always `x` + 3 zero-padded digits. E.g. `main=5` → `/spiffs/x005.mp3`, `main=700` → `/spiffs/x700.mp3`.
+- `second` — unused.
+- ⚠️ If `main ≥ 999`, nothing plays (firmware logs `Too long number audio file`).
+- ⚠️ Only `x000`–`x998` files are reachable. Other-prefixed names from the Audio Files Reference (`n###` numbers, `cfor`/`sqrt`, etc.) are NOT available over this channel — the prefix is hard-coded as `x`.
+
+Confirmed by firmware source:
+```c
+case cmd_prop[ble_cmd_sound].code:
+    is_audio_play = true;
+    if (cmd.main < 999) {
+        ble_cmd_state_send(busy_state);
+        sprintf(audio_name_buffer, "/spiffs/x%03d.mp3", (int) cmd.main);
+        cmd_disable_led_timer();
+        audio_play_file_blocking(audio_name_buffer);
+        cmd_enable_led_timer();
+        ble_cmd_state_send(free_state);
+    } else
+        ESP_LOGW(tag, "Too long number audio file.");
+    break;
+```
 
 ### `cmd_conf` (`0x05`)
 Starts the robot configuration process.
