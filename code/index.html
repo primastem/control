@@ -48,15 +48,14 @@
   /* program list */
   .steps{display:flex;flex-direction:column;gap:8px;min-height:40px}
   .empty{color:#55636f;font-size:13px;text-align:center;padding:14px 0}
-  .step-row{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);
-    border-radius:10px;padding:8px 10px}
+  .step-row{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);
+    border-radius:10px;padding:8px 8px}
   .step-row.current{border-color:var(--accent);box-shadow:0 0 0 2px rgba(104,184,51,.35)}
   .step-row.done{opacity:.5}
-  .step-idx{font-size:11px;color:var(--muted);width:18px;text-align:center;flex:0 0 auto}
-  .step-icon{font-size:18px;flex:0 0 auto;width:22px;text-align:center}
-  .step-label{font-size:13px;font-weight:600;flex:0 0 auto;min-width:64px}
+  .step-idx{font-size:11px;color:var(--muted);width:14px;text-align:center;flex:0 0 auto}
+  .step-icon{font-size:20px;flex:0 0 auto;width:24px;text-align:center}
   .step-row input{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);
-    padding:6px 8px;font-size:13px;width:74px;text-align:center;outline:none}
+    padding:6px 6px;font-size:13px;width:56px;text-align:center;outline:none;min-width:0}
   .step-row input:focus{border-color:var(--accent)}
   .step-row .seg-mini{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .step-row .seg-mini button{background:var(--bg);color:var(--muted);border:0;border-left:1px solid var(--line);
@@ -64,9 +63,9 @@
   .step-row .seg-mini button:first-child{border-left:0}
   .step-row .seg-mini button.active{background:var(--accent);color:var(--on-accent)}
   .step-row .spacer{flex:1 1 auto}
-  .step-row .ic{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:15px;padding:4px;line-height:1}
+  .step-row .ic{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:14px;padding:2px;line-height:1;flex:0 0 auto}
   .step-row .ic:hover{color:var(--txt)}
-  .unit{font-size:12px;color:var(--muted)}
+  .unit{font-size:11px;color:var(--muted);flex:0 0 auto}
 
   .run-row{display:flex;gap:10px;align-items:center;margin-top:14px}
   .run-row .rep{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
@@ -383,8 +382,7 @@ function renderSteps(){
            </div>`;
     row.innerHTML=
       `<span class="step-idx">${i+1}</span>`+
-      `<span class="step-icon">${def.icon}</span>`+
-      `<span class="step-label">${def.label}</span>`+
+      `<span class="step-icon" title="${def.label}">${def.icon}</span>`+
       mid+
       `<span class="spacer"></span>`+
       `<button class="ic" title="up" onclick="moveStep(${s.id},-1)">▲</button>`+
