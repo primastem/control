@@ -157,7 +157,6 @@
 /* ===== BLE core (copied/trimmed from main app) ===== */
 const CMD = { log:0x01, move:0x02, led:0x03, sound:0x04, conf:0x05, lvl:0x06, name:0xAA, break:0xFF };
 const WATCHDOG_MS = 15000;     // hard cap waiting for a single blocking step
-const GRACE_MS    = 800;       // if no 'busy' seen this fast, assume step was instantaneous
 const NO_FB_MS    = 3000;      // estimate per step when robot gives no state feedback
 let device=null, server=null, cmdChar=null, stateChar=null;
 const state = { connected:false, robotBusy:false, status:'disconnected' };
@@ -264,40 +263,38 @@ async function writeBuf(buf){
 }
 
 /* ===== state notify → drive UI + the step waiter ===== */
-let stepWaiter=null;   // {sawBusy, resolve, graceTimer, hardTimer}
+let stepWaiter=null;   // {sawBusy, resolve, hardTimer}
 function onStateChanged(e){
   const v=e.target.value.getUint8(0);
   state.robotBusy=(v===0x01);
   logLine('state ← '+(v===0x01?'BUSY (0x01)':'FREE (0x00)'),'rx');
   updateStatus(state.robotBusy?'busy':(state.connected?'connected':'disconnected'));
   if(stepWaiter){
-    if(state.robotBusy){ stepWaiter.sawBusy=true; if(stepWaiter.graceTimer){clearTimeout(stepWaiter.graceTimer);stepWaiter.graceTimer=null;} }
-    else if(stepWaiter.sawBusy){ resolveWaiter('free'); }
+    if(state.robotBusy){ stepWaiter.sawBusy=true; }
+    else if(stepWaiter.sawBusy){ resolveWaiter('free'); }   // resolve only on free that follows this step's own busy
   }
 }
 function resolveWaiter(why){
   if(!stepWaiter) return;
   const w=stepWaiter; stepWaiter=null;
-  if(w.graceTimer) clearTimeout(w.graceTimer);
   if(w.hardTimer)  clearTimeout(w.hardTimer);
   w.resolve(why||'done');
 }
 
 /* ===== Promise-based "send blocking command, wait for free" ===== */
 function sendAndWait(type,main,second){
-  return new Promise(async resolve=>{
-    const ok=await writeBuf(buildPacket(type,main,second));
-    if(!ok || aborted){ resolve('skip'); return; }
-    const w={sawBusy:false,resolve,graceTimer:null,hardTimer:null};
-    stepWaiter=w;
-    if(stateChar){
-      // expect busy → … → free. If no busy within GRACE_MS, treat as instant.
-      w.graceTimer=setTimeout(()=>{ if(stepWaiter===w && !w.sawBusy) resolveWaiter('grace'); }, GRACE_MS);
-      w.hardTimer =setTimeout(()=>{ if(stepWaiter===w){ logLine('step watchdog '+(WATCHDOG_MS/1000)+'s — moving on','err'); resolveWaiter('watchdog'); } }, WATCHDOG_MS);
-    } else {
-      // no feedback channel — fixed time estimate
-      w.hardTimer=setTimeout(()=>{ if(stepWaiter===w) resolveWaiter('estimate'); }, NO_FB_MS);
-    }
+  return new Promise(resolve=>{
+    // Register the waiter BEFORE writing. The robot can emit 'busy' the instant the
+    // write lands — often before the awaited write resolves. Registering first
+    // guarantees we capture that 'busy'; otherwise the later 'free' is ignored by the
+    // sawBusy gate and the step hangs until the watchdog. Then wait strictly for the
+    // busy → free cycle (no early 'grace' resolve → no move overlap/cascade).
+    const w={sawBusy:false,resolve,hardTimer:null}; stepWaiter=w;
+    const cap = stateChar ? WATCHDOG_MS : NO_FB_MS;
+    w.hardTimer=setTimeout(()=>{ if(stepWaiter===w){ if(stateChar) logLine('step watchdog '+(WATCHDOG_MS/1000)+'s — moving on','err'); resolveWaiter('timeout'); } }, cap);
+    writeBuf(buildPacket(type,main,second)).then(ok=>{
+      if((!ok || aborted) && stepWaiter===w) resolveWaiter('skip');   // write failed/aborted → don't wait
+    });
   });
 }
 let pauseTimer=null, pauseResolve=null;
