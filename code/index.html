@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PrimaSTEM Robot — Program Sequencer (prototype)</title>
+<style>
+  /* ===== PrimaSTEM dark theme (copied from main app — prototype, EN only) ===== */
+  :root{
+    --bg:#121512; --card:#1c1f1a; --card2:#2a2d27; --line:rgba(255,255,255,.10);
+    --txt:#ffffff; --muted:#a1a39f; --accent:#68b833; --accent2:#4d8825; --on-accent:#fff;
+    --danger:#ef4444; --danger2:#b91c1c; --ok:#68b833; --busy:#f59e0b;
+    --shadow:0 6px 20px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1b2417,#121512 60%);
+    color:var(--txt);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:16px;gap:14px}
+  header{width:100%;max-width:480px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:.3px}
+  .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid;place-items:center;color:var(--on-accent);font-weight:900;font-size:16px}
+  .tag{font-size:11px;color:var(--muted);font-weight:600}
+
+  .card{width:100%;max-width:480px;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 12px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+  .conn-row{display:flex;gap:10px;align-items:center}
+  .btn{border:0;border-radius:10px;padding:12px 14px;font-weight:700;font-size:15px;cursor:pointer;
+    transition:transform .05s ease,opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn:active{transform:scale(.97)}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--on-accent);flex:1}
+  .btn-ghost{background:var(--card2);color:var(--txt);border:1px solid var(--line)}
+  .btn-danger{background:linear-gradient(135deg,var(--danger),var(--danger2));color:#fff}
+
+  .status{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:14px;color:var(--muted)}
+  .dot{width:11px;height:11px;border-radius:50%;background:#55636f;transition:background .2s,box-shadow .2s}
+  .dot.connected{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+  .dot.busy{background:var(--busy);box-shadow:0 0 8px var(--busy)}
+
+  /* palette */
+  .palette{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+  .palette .btn{background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:13px;padding:10px 6px}
+  .palette .btn:not(:disabled):active{background:var(--accent);color:var(--on-accent)}
+
+  /* program list */
+  .steps{display:flex;flex-direction:column;gap:8px;min-height:40px}
+  .empty{color:#55636f;font-size:13px;text-align:center;padding:14px 0}
+  .step-row{display:flex;align-items:center;gap:8px;background:var(--card2);border:1px solid var(--line);
+    border-radius:10px;padding:8px 10px}
+  .step-row.current{border-color:var(--accent);box-shadow:0 0 0 2px rgba(104,184,51,.35)}
+  .step-row.done{opacity:.5}
+  .step-idx{font-size:11px;color:var(--muted);width:18px;text-align:center;flex:0 0 auto}
+  .step-icon{font-size:18px;flex:0 0 auto;width:22px;text-align:center}
+  .step-label{font-size:13px;font-weight:600;flex:0 0 auto;min-width:64px}
+  .step-row input{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);
+    padding:6px 8px;font-size:13px;width:74px;text-align:center;outline:none}
+  .step-row input:focus{border-color:var(--accent)}
+  .step-row .seg-mini{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .step-row .seg-mini button{background:var(--bg);color:var(--muted);border:0;border-left:1px solid var(--line);
+    padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer}
+  .step-row .seg-mini button:first-child{border-left:0}
+  .step-row .seg-mini button.active{background:var(--accent);color:var(--on-accent)}
+  .step-row .spacer{flex:1 1 auto}
+  .step-row .ic{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:15px;padding:4px;line-height:1}
+  .step-row .ic:hover{color:var(--txt)}
+  .unit{font-size:12px;color:var(--muted)}
+
+  .run-row{display:flex;gap:10px;align-items:center;margin-top:14px}
+  .run-row .rep{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .run-row .rep input{width:54px;background:var(--card2);border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);padding:8px;text-align:center;font-weight:700;outline:none}
+
+  details{margin-top:6px;border-top:1px solid var(--line);padding-top:12px}
+  summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;user-select:none}
+  .uuid-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
+  .uuid-grid label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  .uuid-grid input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);padding:8px;font-size:13px;text-align:center;outline:none}
+
+  .log{width:100%;max-width:480px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+    color:var(--muted);background:#0d0f0c;border:1px solid var(--line);border-radius:10px;
+    padding:10px;height:120px;overflow-y:auto;white-space:pre-wrap;line-height:1.45}
+  .log .tx{color:var(--accent)} .log .rx{color:#60a5fa} .log .err{color:var(--danger)} .log .ok{color:#a3e635}
+  .warn{width:100%;max-width:480px;background:#3b2a12;border:1px solid #6b4d1f;color:#fbbf24;
+    border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5;display:none}
+  footer{max-width:480px;font-size:11px;color:#55636f;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><div class="logo">P</div><span>PrimaSTEM</span></div>
+  <span class="tag">Program Sequencer · prototype</span>
+</header>
+
+<div id="compat" class="warn"></div>
+
+<!-- ===== Connection ===== -->
+<div class="card">
+  <div class="conn-row">
+    <button id="connectBtn" class="btn btn-primary" onclick="toggleConnect()"><span id="connectLabel">Connect</span></button>
+    <button id="connectLastBtn" class="btn btn-ghost" onclick="connectLast()" style="display:none">Last</button>
+  </div>
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">Not connected</span>
+  </div>
+  <details>
+    <summary>⚙ BLE settings (UUID)</summary>
+    <div class="uuid-grid">
+      <div><label>Service</label><input id="uuidService" value="bd9e1632-0100-4d63-ad5f-27f115379843"></div>
+      <div><label>Command</label><input id="uuidCmd" value="bd9e1632-0101-4d63-ad5f-27f115379843"></div>
+      <div><label>State</label><input id="uuidState" value="bd9e1632-0102-4d63-ad5f-27f115379843"></div>
+    </div>
+  </details>
+</div>
+
+<!-- ===== Program ===== -->
+<div class="card">
+  <h3>Program</h3>
+  <div class="palette">
+    <button class="btn" onclick="addStep('fwd')">＋ ▲ Forward</button>
+    <button class="btn" onclick="addStep('back')">＋ ▼ Back</button>
+    <button class="btn" onclick="addStep('left')">＋ ◀ Turn L</button>
+    <button class="btn" onclick="addStep('right')">＋ ▶ Turn R</button>
+    <button class="btn" onclick="addStep('sound')">＋ ♪ Sound</button>
+    <button class="btn" onclick="addStep('led')">＋ ● LED</button>
+    <button class="btn" onclick="addStep('pause')">＋ ⏸ Pause</button>
+    <button class="btn" onclick="clearProgram()">🗑 Clear</button>
+  </div>
+
+  <div class="steps" id="steps"></div>
+
+  <div class="run-row">
+    <button id="runBtn" class="btn btn-primary" onclick="runProgram()" disabled>▶ Run</button>
+    <button id="stopBtn" class="btn btn-danger" onclick="abortProgram()" disabled>■ Stop</button>
+    <label class="rep">× <input id="repeats" type="number" min="1" max="999" value="1"></label>
+  </div>
+</div>
+
+<div class="log" id="log"></div>
+
+<footer>
+  Prototype — does not touch the main app. Web Bluetooth · Chrome / Edge on Android, Windows, macOS, Linux.
+</footer>
+
+<script>
+/* ============================================================
+   PrimaSTEM Robot — Program Sequencer (PROTOTYPE)
+   Standalone. BLE core copied from index.html; on top of it a
+   command sequencer with a Promise-based "send & wait for free"
+   runner. EN only. Nothing here imports/modifies the main app.
+   ============================================================ */
+
+/* ===== BLE core (copied/trimmed from main app) ===== */
+const CMD = { log:0x01, move:0x02, led:0x03, sound:0x04, conf:0x05, lvl:0x06, name:0xAA, break:0xFF };
+const WATCHDOG_MS = 15000;     // hard cap waiting for a single blocking step
+const GRACE_MS    = 800;       // if no 'busy' seen this fast, assume step was instantaneous
+const NO_FB_MS    = 3000;      // estimate per step when robot gives no state feedback
+let device=null, server=null, cmdChar=null, stateChar=null;
+const state = { connected:false, robotBusy:false, status:'disconnected' };
+
+function parseUuid(v){
+  v=(v||'').trim();
+  if(/^0x[0-9a-fA-F]+$/.test(v)) return parseInt(v,16);
+  if(/^[0-9a-fA-F]+$/.test(v) && v.length<=8) return parseInt(v,16);
+  return v.toLowerCase();
+}
+function logLine(msg,cls){
+  const el=document.getElementById('log');
+  const time=new Date().toLocaleTimeString();
+  el.innerHTML += `<span class="${cls||''}">[${time}] ${msg}</span>\n`;
+  el.scrollTop=el.scrollHeight;
+}
+function hex(bytes){return Array.from(bytes).map(b=>'0x'+b.toString(16).padStart(2,'0')).join(' ');}
+
+function updateStatus(s){
+  state.status=s;
+  const dot=document.getElementById('dot'), txt=document.getElementById('statusText');
+  dot.className='dot';
+  if(s==='connected'){dot.classList.add('connected');txt.textContent='Connected · ready';}
+  else if(s==='busy'){dot.classList.add('busy');txt.textContent='Robot is executing…';}
+  else if(s==='connecting'){txt.textContent='Connecting…';}
+  else {txt.textContent='Not connected';}
+}
+function checkCompat(){
+  const box=document.getElementById('compat');
+  if(!('bluetooth' in navigator)){
+    box.style.display='block';
+    box.textContent='⚠ This browser does not support Web Bluetooth. Use Chrome/Edge (desktop/Android) or Bluefy on iOS.';
+    document.getElementById('connectBtn').disabled=true; return false;
+  }
+  if(location.protocol!=='https:' && location.hostname!=='localhost' && location.hostname!=='127.0.0.1'){
+    box.style.display='block';
+    box.textContent='⚠ Web Bluetooth needs HTTPS or localhost (not file://). Serve via python -m http.server.';
+    return true;
+  }
+  box.style.display='none'; return true;
+}
+function refreshLastBtn(){
+  const name=localStorage.getItem('ps_robot'), btn=document.getElementById('connectLastBtn');
+  if(name && !state.connected){ btn.style.display=''; btn.textContent='Last · '+name; }
+  else btn.style.display='none';
+}
+
+async function toggleConnect(){ if(state.connected){disconnect();return;} await connect(); }
+async function connectLast(){
+  const name=localStorage.getItem('ps_robot');
+  if(!name){ await connect(); return; }
+  await connect({name});
+}
+async function connect(opts){
+  const svcUuid=parseUuid(document.getElementById('uuidService').value);
+  const cmdUuid=parseUuid(document.getElementById('uuidCmd').value);
+  const stateUuid=parseUuid(document.getElementById('uuidState').value);
+  try{
+    updateStatus('connecting');
+    const filters=(opts&&opts.name)?[{name:opts.name}]:[{namePrefix:'ROBOT'}];
+    logLine('requestDevice ('+(opts&&opts.name?('name "'+opts.name+'"'):'namePrefix "ROBOT"')+')…');
+    device=await navigator.bluetooth.requestDevice({filters,optionalServices:[svcUuid]});
+    device.addEventListener('gattserverdisconnected',onDisconnected);
+    logLine('device: '+(device.name||device.id));
+    if(device.name) localStorage.setItem('ps_robot',device.name);
+    server=await device.gatt.connect();
+    const service=await server.getPrimaryService(svcUuid);
+    cmdChar=await service.getCharacteristic(cmdUuid);
+    logLine('command characteristic OK');
+    try{
+      stateChar=await service.getCharacteristic(stateUuid);
+      await stateChar.startNotifications();
+      stateChar.addEventListener('characteristicvaluechanged',onStateChanged);
+      logLine('state notifications ON');
+    }catch(e){ logLine('no state characteristic — runner will use time estimates','err'); stateChar=null; }
+    state.connected=true; state.robotBusy=false;
+    document.getElementById('connectLabel').textContent='Disconnect';
+    updateStatus('connected'); refreshLastBtn(); updateRunBtn();
+    logLine('CONNECTED','ok');
+  }catch(err){ logLine('connect error: '+err.message,'err'); updateStatus('disconnected'); cleanup(); }
+}
+function disconnect(){ if(device&&device.gatt.connected) device.gatt.disconnect(); else onDisconnected(); }
+function onDisconnected(){ logLine('disconnected'); cleanup(); }
+function cleanup(){
+  abortProgram();
+  state.connected=false; state.robotBusy=false; cmdChar=null; stateChar=null; server=null;
+  document.getElementById('connectLabel').textContent='Connect';
+  updateStatus('disconnected'); refreshLastBtn(); updateRunBtn();
+}
+
+function buildPacket(type,main,second){
+  const buf=new ArrayBuffer(9), dv=new DataView(buf);
+  dv.setUint8(0,type); dv.setUint32(1,main>>>0,true); dv.setUint32(5,second>>>0,true);
+  return buf;
+}
+async function writeBuf(buf){
+  if(!cmdChar){ logLine('not connected','err'); return false; }
+  logLine('TX → '+hex(new Uint8Array(buf)),'tx');
+  try{
+    if(cmdChar.writeValueWithResponse) await cmdChar.writeValueWithResponse(buf);
+    else await cmdChar.writeValue(buf);
+    return true;
+  }catch(err){ logLine('write error: '+err.message,'err'); return false; }
+}
+
+/* ===== state notify → drive UI + the step waiter ===== */
+let stepWaiter=null;   // {sawBusy, resolve, graceTimer, hardTimer}
+function onStateChanged(e){
+  const v=e.target.value.getUint8(0);
+  state.robotBusy=(v===0x01);
+  logLine('state ← '+(v===0x01?'BUSY (0x01)':'FREE (0x00)'),'rx');
+  updateStatus(state.robotBusy?'busy':(state.connected?'connected':'disconnected'));
+  if(stepWaiter){
+    if(state.robotBusy){ stepWaiter.sawBusy=true; if(stepWaiter.graceTimer){clearTimeout(stepWaiter.graceTimer);stepWaiter.graceTimer=null;} }
+    else if(stepWaiter.sawBusy){ resolveWaiter('free'); }
+  }
+}
+function resolveWaiter(why){
+  if(!stepWaiter) return;
+  const w=stepWaiter; stepWaiter=null;
+  if(w.graceTimer) clearTimeout(w.graceTimer);
+  if(w.hardTimer)  clearTimeout(w.hardTimer);
+  w.resolve(why||'done');
+}
+
+/* ===== Promise-based "send blocking command, wait for free" ===== */
+function sendAndWait(type,main,second){
+  return new Promise(async resolve=>{
+    const ok=await writeBuf(buildPacket(type,main,second));
+    if(!ok || aborted){ resolve('skip'); return; }
+    const w={sawBusy:false,resolve,graceTimer:null,hardTimer:null};
+    stepWaiter=w;
+    if(stateChar){
+      // expect busy → … → free. If no busy within GRACE_MS, treat as instant.
+      w.graceTimer=setTimeout(()=>{ if(stepWaiter===w && !w.sawBusy) resolveWaiter('grace'); }, GRACE_MS);
+      w.hardTimer =setTimeout(()=>{ if(stepWaiter===w){ logLine('step watchdog '+(WATCHDOG_MS/1000)+'s — moving on','err'); resolveWaiter('watchdog'); } }, WATCHDOG_MS);
+    } else {
+      // no feedback channel — fixed time estimate
+      w.hardTimer=setTimeout(()=>{ if(stepWaiter===w) resolveWaiter('estimate'); }, NO_FB_MS);
+    }
+  });
+}
+let pauseTimer=null, pauseResolve=null;
+function sleep(ms){
+  return new Promise(resolve=>{ pauseResolve=resolve; pauseTimer=setTimeout(()=>{pauseTimer=null;pauseResolve=null;resolve('done');},ms); });
+}
+
+/* ============================================================
+   Program model + UI
+   ============================================================ */
+let program = [];   // [{id, kind, ...params}]
+let seq = 1;
+let running=false, aborted=false, currentIdx=-1;
+
+const STEP_DEFS = {
+  fwd:  {icon:'▲', label:'Forward', params:{mm:150}},
+  back: {icon:'▼', label:'Back',    params:{mm:150}},
+  left: {icon:'◀', label:'Turn L',  params:{deg:90}},
+  right:{icon:'▶', label:'Turn R',  params:{deg:90}},
+  sound:{icon:'♪', label:'Sound',   params:{idx:5}},
+  led:  {icon:'●', label:'LED',     params:{color:'r'}},   // both diodes (fixed)
+  pause:{icon:'⏸', label:'Pause',   params:{ms:500}},
+};
+
+function addStep(kind){
+  const def=STEP_DEFS[kind];
+  program.push(Object.assign({id:seq++, kind}, JSON.parse(JSON.stringify(def.params))));
+  renderSteps(); persist();
+}
+function removeStep(id){ program=program.filter(s=>s.id!==id); renderSteps(); persist(); }
+function dupStep(id){
+  const i=program.findIndex(s=>s.id===id);
+  if(i<0) return;
+  program.splice(i+1,0,Object.assign({},program[i],{id:seq++}));
+  renderSteps(); persist();
+}
+function moveStep(id,dir){
+  const i=program.findIndex(s=>s.id===id), j=i+dir;
+  if(i<0||j<0||j>=program.length) return;
+  [program[i],program[j]]=[program[j],program[i]];
+  renderSteps(); persist();
+}
+function clearProgram(){ if(running) return; program=[]; renderSteps(); persist(); }
+
+function setStepParam(id,key,val){
+  const s=program.find(x=>x.id===id); if(!s) return;
+  s[key]=val; persist();
+}
+
+function stepSummary(s){
+  switch(s.kind){
+    case 'fwd': case 'back': return s.mm+' mm';
+    case 'left': case 'right': return s.deg+'°';
+    case 'sound': return 'x'+String(s.idx).padStart(3,'0');
+    case 'led': return ({r:'Red',g:'Grn',b:'Cyan'})[s.color]||s.color;
+    case 'pause': return s.ms+' ms';
+  }
+  return '';
+}
+
+function renderSteps(){
+  const box=document.getElementById('steps');
+  if(!program.length){ box.innerHTML='<div class="empty">No steps yet — add from the palette above.</div>'; updateRunBtn(); return; }
+  box.innerHTML='';
+  program.forEach((s,i)=>{
+    const def=STEP_DEFS[s.kind];
+    const row=document.createElement('div');
+    row.className='step-row'+(i===currentIdx?' current':'');
+    row.dataset.id=s.id;
+    let mid='';
+    if(s.kind==='fwd'||s.kind==='back')
+      mid=`<input type="number" min="0" value="${s.mm}" oninput="setStepParam(${s.id},'mm',clampU32(this.value))"><span class="unit">mm</span>`;
+    else if(s.kind==='left'||s.kind==='right')
+      mid=`<input type="number" min="0" value="${s.deg}" oninput="setStepParam(${s.id},'deg',clampU32(this.value))"><span class="unit">°</span>`;
+    else if(s.kind==='sound')
+      mid=`<input type="number" min="0" max="998" value="${s.idx}" oninput="setStepParam(${s.id},'idx',clampSound(this.value))"><span class="unit">x###</span>`;
+    else if(s.kind==='pause')
+      mid=`<input type="number" min="0" value="${s.ms}" oninput="setStepParam(${s.id},'ms',clampU32(this.value))"><span class="unit">ms</span>`;
+    else if(s.kind==='led')
+      mid=`<div class="seg-mini" data-k="color">
+             ${['r','g','b'].map(v=>`<button class="${s.color===v?'active':''}" onclick="setSeg(${s.id},'color','${v}',this)">${({r:'Red',g:'Grn',b:'Cyan'})[v]}</button>`).join('')}
+           </div>`;
+    row.innerHTML=
+      `<span class="step-idx">${i+1}</span>`+
+      `<span class="step-icon">${def.icon}</span>`+
+      `<span class="step-label">${def.label}</span>`+
+      mid+
+      `<span class="spacer"></span>`+
+      `<button class="ic" title="up" onclick="moveStep(${s.id},-1)">▲</button>`+
+      `<button class="ic" title="down" onclick="moveStep(${s.id},1)">▼</button>`+
+      `<button class="ic" title="duplicate" onclick="dupStep(${s.id})">⧉</button>`+
+      `<button class="ic" title="delete" onclick="removeStep(${s.id})">✕</button>`;
+    box.appendChild(row);
+  });
+  updateRunBtn();
+}
+function setSeg(id,key,val,btn){
+  setStepParam(id,key,val);
+  btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function clampU32(n){ n=Math.floor(Number(n)); if(!isFinite(n)||n<0)n=0; if(n>4294967295)n=4294967295; return n; }
+function clampSound(n){ n=Math.floor(Number(n)); if(!isFinite(n)||n<0)n=0; if(n>998)n=998; return n; }
+
+/* ===== persistence ===== */
+function persist(){ localStorage.setItem('ps_program', JSON.stringify(program)); }
+function restore(){
+  try{
+    const raw=localStorage.getItem('ps_program');
+    if(raw){ program=JSON.parse(raw)||[]; seq=program.reduce((m,s)=>Math.max(m,s.id),0)+1; }
+  }catch(e){ program=[]; }
+}
+
+/* ===== runner ===== */
+function updateRunBtn(){
+  document.getElementById('runBtn').disabled = !(state.connected && program.length && !running);
+  document.getElementById('stopBtn').disabled = !running;
+}
+function highlight(i){
+  currentIdx=i;
+  document.querySelectorAll('.step-row').forEach((r,idx)=>{
+    r.classList.toggle('current', idx===i);
+    r.classList.toggle('done', i>=0 && idx<i);
+  });
+}
+function clearHighlight(){
+  currentIdx=-1;
+  document.querySelectorAll('.step-row').forEach(r=>{r.classList.remove('current','done');});
+}
+
+async function execStep(s){
+  switch(s.kind){
+    case 'fwd':   return sendAndWait(CMD.move,'f'.charCodeAt(0), clampU32(s.mm));
+    case 'back':  return sendAndWait(CMD.move,'b'.charCodeAt(0), clampU32(s.mm));
+    case 'left':  return sendAndWait(CMD.move,'l'.charCodeAt(0), clampU32(s.deg));
+    case 'right': return sendAndWait(CMD.move,'r'.charCodeAt(0), clampU32(s.deg));
+    case 'sound': return sendAndWait(CMD.sound, clampSound(s.idx), 0);
+    case 'led':   return sendAndWait(CMD.led, 'b'.charCodeAt(0), s.color.charCodeAt(0));  // 'b' = both diodes
+    case 'pause': logLine('pause '+s.ms+' ms'); return sleep(clampU32(s.ms));
+  }
+}
+
+async function runProgram(){
+  if(running || !state.connected || !program.length) return;
+  const reps=Math.max(1,Math.min(999, clampU32(document.getElementById('repeats').value)||1));
+  running=true; aborted=false; updateRunBtn();
+  logLine('▶ RUN — '+program.length+' steps × '+reps,'ok');
+  try{
+    for(let rep=0; rep<reps && !aborted; rep++){
+      if(reps>1) logLine('— loop '+(rep+1)+'/'+reps);
+      for(let i=0; i<program.length && !aborted; i++){
+        highlight(i);
+        logLine('step '+(i+1)+': '+STEP_DEFS[program[i].kind].label+' '+stepSummary(program[i]));
+        await execStep(program[i]);
+      }
+    }
+  }catch(e){ logLine('run error: '+e.message,'err'); }
+  running=false; clearHighlight(); updateRunBtn();
+  logLine(aborted?'■ STOPPED':'✓ DONE', aborted?'err':'ok');
+}
+function abortProgram(){
+  if(!running){ return; }
+  aborted=true;
+  // cancel any in-flight wait / pause and stop the robot
+  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer=null; if(pauseResolve){pauseResolve('abort');pauseResolve=null;} }
+  resolveWaiter('abort');
+  if(cmdChar) writeBuf(buildPacket(CMD.break,0,0));   // cmd_break
+  logLine('STOP requested','err');
+}
+
+/* ===== boot ===== */
+restore();
+renderSteps();
+refreshLastBtn();
+checkCompat();
+updateRunBtn();
+logLine('Program Sequencer prototype — ready');
+</script>
+</body>
+</html>
