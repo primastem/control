@@ -109,6 +109,34 @@
   .raw-hexrow .param{flex:1}
   .raw-hexrow input{font-family:ui-monospace,Consolas,monospace;font-size:13px}
 
+  /* ===== program sequencer ===== */
+  .palette{display:flex;flex-direction:column;gap:8px;margin:10px 0 14px}
+  .palette .prow{display:flex;gap:8px}
+  .palette .btn{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:13px;padding:10px 6px}
+  .palette .btn:not(:disabled):active{background:var(--accent);color:var(--on-accent)}
+  .palette .btn-wide,.palette .btn-clear{width:100%}
+  .steps{display:flex;flex-direction:column;gap:6px;min-height:36px}
+  .empty{color:#55636f;font-size:13px;text-align:center;padding:12px 0}
+  .step-row{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px}
+  .step-row.current{border-color:var(--accent);box-shadow:0 0 0 2px rgba(104,184,51,.35)}
+  .step-row.done{opacity:.5}
+  .step-idx{font-size:11px;color:var(--muted);width:14px;text-align:center;flex:0 0 auto}
+  .step-icon{font-size:20px;flex:0 0 auto;width:24px;text-align:center}
+  .step-row input{background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:6px;font-size:13px;width:56px;text-align:center;outline:none;min-width:0}
+  .step-row input:focus{border-color:var(--accent)}
+  .step-row .seg-mini{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .step-row .seg-mini button{background:var(--bg);color:var(--muted);border:0;border-left:1px solid var(--line);padding:6px 8px;font-size:12px;font-weight:700;cursor:pointer}
+  .step-row .seg-mini button:first-child{border-left:0}
+  .step-row .seg-mini button.active{background:var(--accent);color:var(--on-accent)}
+  .step-row .spacer{flex:1 1 auto}
+  .step-row .ic{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:14px;padding:2px;line-height:1;flex:0 0 auto}
+  .step-row .ic:hover{color:var(--txt)}
+  .unit{font-size:11px;color:var(--muted);flex:0 0 auto}
+  .run-row{display:flex;gap:10px;align-items:center;margin-top:14px}
+  .run-row .rep{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .run-row .rep input{width:54px;background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:8px;text-align:center;font-weight:700;outline:none}
+  .btn-danger{background:linear-gradient(135deg,var(--danger),var(--danger2));color:#fff}
+
   .log{width:100%;max-width:480px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
     color:var(--muted);background:#0d0f0c;border:1px solid var(--line);border-radius:10px;
     padding:10px;height:84px;overflow-y:auto;white-space:pre-wrap;line-height:1.45}
@@ -225,6 +253,33 @@
   <button id="ledApply" class="btn btn-primary" onclick="applyLed()" disabled data-i18n="ledApply">Вспышка</button>
 </div>
 
+<!-- ===== Программа (конструктор) ===== -->
+<div class="card">
+  <details>
+    <summary data-i18n="progTitle">Программа</summary>
+    <div class="palette">
+      <button class="btn btn-wide" onclick="addStep('fwd')">＋ ▲ <span data-i18n="aForward">Forward</span></button>
+      <div class="prow">
+        <button class="btn" onclick="addStep('left')">＋ ◀ <span data-i18n="aLeft">Turn L</span></button>
+        <button class="btn" onclick="addStep('right')">＋ ▶ <span data-i18n="aRight">Turn R</span></button>
+      </div>
+      <button class="btn btn-wide" onclick="addStep('back')">＋ ▼ <span data-i18n="aBack">Back</span></button>
+      <div class="prow">
+        <button class="btn" onclick="addStep('sound')">＋ ♪ <span data-i18n="aSound">Sound</span></button>
+        <button class="btn" onclick="addStep('led')">＋ ● <span data-i18n="aLed">LED</span></button>
+        <button class="btn" onclick="addStep('pause')">＋ ⏸ <span data-i18n="aPause">Pause</span></button>
+      </div>
+      <button class="btn btn-clear" onclick="clearProgram()">🗑 <span data-i18n="clear">Delete program</span></button>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="run-row">
+      <button id="runBtn" class="btn btn-primary" onclick="runProgram()" disabled>▶ <span data-i18n="run">Run</span></button>
+      <label class="rep">× <input id="repeats" type="number" inputmode="numeric" min="1" max="999" value="1"></label>
+      <button id="seqStopBtn" class="btn btn-danger" onclick="abortProgram()" disabled>■ <span data-i18n="stop">СТОП</span></button>
+    </div>
+  </details>
+</div>
+
 <!-- ===== Доп. настройки ===== -->
 <div class="card">
   <details>
@@ -269,6 +324,7 @@ const I18N = {
   es:{connect:"Conectar",disconnect:"Desconectar",disconnected:"No conectado",
       connecting:"Conectando…",connected:"Conectado · listo",busy:"El robot está ejecutando…",
       connectLast:"Último",
+      progTitle:"Programa",aForward:"Avanzar",aBack:"Retroceder",aLeft:"Girar I",aRight:"Girar D",aSound:"Sonido",aLed:"LED",aPause:"Pausa",clear:"Eliminar programa",run:"Ejecutar",emptyProg:"Sin pasos aún — añade desde la paleta de arriba.",
       distance:"Distancia (mm)",angle:"Ángulo (°)",stop:"PARAR",
       kbdHint:"Teclas ↑↓←→ — movimiento, Espacio — PARAR",
       ledTitle:"LED",diode:"Diodo",diodeL:"Izquierdo",diodeR:"Derecho",diodeB:"Ambos",
@@ -288,6 +344,7 @@ const I18N = {
   de:{connect:"Verbinden",disconnect:"Trennen",disconnected:"Nicht verbunden",
       connecting:"Verbinde…",connected:"Verbunden · bereit",busy:"Roboter führt aus…",
       connectLast:"Letzter",
+      progTitle:"Programm",aForward:"Vorwärts",aBack:"Zurück",aLeft:"Drehen L",aRight:"Drehen R",aSound:"Ton",aLed:"LED",aPause:"Pause",clear:"Programm löschen",run:"Start",emptyProg:"Noch keine Schritte — über die Palette oben hinzufügen.",
       distance:"Distanz (mm)",angle:"Winkel (°)",stop:"STOPP",
       kbdHint:"Tasten ↑↓←→ — Bewegung, Leertaste — STOPP",
       ledTitle:"LED",diode:"Diode",diodeL:"Links",diodeR:"Rechts",diodeB:"Beide",
@@ -307,6 +364,7 @@ const I18N = {
   nl:{connect:"Verbinden",disconnect:"Verbreken",disconnected:"Niet verbonden",
       connecting:"Verbinden…",connected:"Verbonden · gereed",busy:"Robot voert uit…",
       connectLast:"Laatste",
+      progTitle:"Programma",aForward:"Vooruit",aBack:"Achteruit",aLeft:"Draai L",aRight:"Draai R",aSound:"Geluid",aLed:"LED",aPause:"Pauze",clear:"Programma wissen",run:"Start",emptyProg:"Nog geen stappen — voeg toe via het palet hierboven.",
       distance:"Afstand (mm)",angle:"Hoek (°)",stop:"STOP",
       kbdHint:"Toetsen ↑↓←→ — bewegen, Spatie — STOP",
       ledTitle:"LED",diode:"Diode",diodeL:"Links",diodeR:"Rechts",diodeB:"Beide",
@@ -326,6 +384,7 @@ const I18N = {
   en:{connect:"Connect",disconnect:"Disconnect",disconnected:"Not connected",
       connecting:"Connecting…",connected:"Connected · ready",busy:"Robot is executing…",
       connectLast:"Last",
+      progTitle:"Program",aForward:"Forward",aBack:"Back",aLeft:"Turn L",aRight:"Turn R",aSound:"Sound",aLed:"LED",aPause:"Pause",clear:"Delete program",run:"Run",emptyProg:"No steps yet — add from the palette above.",
       distance:"Distance (mm)",angle:"Angle (°)",stop:"STOP",
       kbdHint:"Keys ↑↓←→ — move, Space — STOP",
       ledTitle:"LED",diode:"Diode",diodeL:"Left",diodeR:"Right",diodeB:"Both",
@@ -345,6 +404,7 @@ const I18N = {
   fr:{connect:"Se connecter",disconnect:"Déconnecter",disconnected:"Non connecté",
       connecting:"Connexion…",connected:"Connecté · prêt",busy:"Le robot exécute une commande…",
       connectLast:"Dernier",
+      progTitle:"Programme",aForward:"Avancer",aBack:"Reculer",aLeft:"Tourner G",aRight:"Tourner D",aSound:"Son",aLed:"LED",aPause:"Pause",clear:"Supprimer le programme",run:"Lancer",emptyProg:"Aucune étape — ajoutez depuis la palette ci-dessus.",
       distance:"Distance (mm)",angle:"Angle (°)",stop:"STOP",
       kbdHint:"Touches ↑↓←→ — déplacement, Espace — STOP",
       ledTitle:"LED",diode:"Diode",diodeL:"Gauche",diodeR:"Droite",diodeB:"Les deux",
@@ -376,6 +436,7 @@ function setLang(l){
   updateStatus(state.status);
   refreshLastBtn();
   checkCompat(true);
+  if(typeof renderSteps==='function') renderSteps();   // refresh sequencer step labels/empty text
 }
 
 /* ============ BLE ============ */
@@ -417,6 +478,7 @@ function setControls(enabled){
   document.getElementById('soundPlay').disabled=!enabled;
   document.getElementById('rawSendBtn').disabled=!enabled;
   document.getElementById('rawHexBtn').disabled=!enabled;
+  if(typeof updateRunBtn==='function') updateRunBtn();
 }
 
 /* ===== Watchdog: blocking cmd must yield 'free' within N s ===== */
@@ -515,6 +577,7 @@ function onDisconnected(){
   cleanup();
 }
 function cleanup(){
+  if(running) abortProgram();
   clearWatchdog();
   state.connected=false; state.robotBusy=false;
   cmdChar=null; stateChar=null; server=null;
@@ -526,6 +589,13 @@ function onStateChanged(e){
   const v=e.target.value.getUint8(0);
   state.robotBusy = (v===0x01);
   logLine('state ← '+(v===0x01?'BUSY (0x01)':'FREE (0x00)'),'rx');
+  // drive the program-sequencer step waiter (resolve on free, after busy)
+  if(stepWaiter){
+    if(state.robotBusy){ stepWaiter.sawBusy=true; }
+    else if(stepWaiter.sawBusy){ resolveWaiter(); }   // resolve only on free that follows this step's own busy
+  }
+  // while a program runs, the runner owns control locking — don't toggle manual controls
+  if(running){ updateStatus(state.robotBusy?'busy':'connected'); return; }
   if(state.robotBusy){
     armWatchdog();                         // (re)arm from actual execution start
     updateStatus('busy'); setControls(false); document.getElementById('stop').disabled=false;
@@ -632,6 +702,123 @@ function sendRawHex(){
   writeBuf(new Uint8Array(bytes).buffer);
 }
 
+/* ============ program sequencer ============ */
+const NO_FB_MS=3000;       // time estimate per step when robot gives no state feedback
+let program=[], pseq=1, running=false, aborted=false, currentIdx=-1;
+let stepWaiter=null, pauseTimer=null, pauseResolve=null;
+const STEP_DEFS={
+  fwd:{icon:'▲',params:{mm:150}},  back:{icon:'▼',params:{mm:150}},
+  left:{icon:'◀',params:{deg:90}}, right:{icon:'▶',params:{deg:90}},
+  sound:{icon:'♪',params:{idx:5}}, led:{icon:'●',params:{color:'r'}}, pause:{icon:'⏸',params:{ms:500}},
+};
+const STEP_LABEL={fwd:'aForward',back:'aBack',left:'aLeft',right:'aRight',sound:'aSound',led:'aLed',pause:'aPause'};
+function clampSound(n){ n=Math.floor(Number(n)); if(!isFinite(n)||n<0)n=0; if(n>998)n=998; return n; }
+
+function addStep(kind){ const d=STEP_DEFS[kind]; program.push(Object.assign({id:pseq++,kind},JSON.parse(JSON.stringify(d.params)))); renderSteps(); persistProgram(); }
+function removeStep(id){ program=program.filter(s=>s.id!==id); renderSteps(); persistProgram(); }
+function dupStep(id){ const i=program.findIndex(s=>s.id===id); if(i<0)return; program.splice(i+1,0,Object.assign({},program[i],{id:pseq++})); renderSteps(); persistProgram(); }
+function moveStep(id,dir){ const i=program.findIndex(s=>s.id===id),j=i+dir; if(i<0||j<0||j>=program.length)return; [program[i],program[j]]=[program[j],program[i]]; renderSteps(); persistProgram(); }
+function clearProgram(){ if(running)return; program=[]; renderSteps(); persistProgram(); }
+function setStepParam(id,key,val){ const s=program.find(x=>x.id===id); if(s){ s[key]=val; persistProgram(); } }
+function setSeg(id,key,val,btn){ setStepParam(id,key,val); btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
+
+function renderSteps(){
+  const box=document.getElementById('steps'); if(!box) return;
+  if(!program.length){ box.innerHTML='<div class="empty">'+t('emptyProg')+'</div>'; updateRunBtn(); return; }
+  box.innerHTML='';
+  program.forEach((s,i)=>{
+    const def=STEP_DEFS[s.kind], row=document.createElement('div');
+    row.className='step-row'+(i===currentIdx?' current':''); row.dataset.id=s.id;
+    let mid='';
+    if(s.kind==='fwd'||s.kind==='back')       mid=`<input type="number" inputmode="numeric" min="0" value="${s.mm}" oninput="setStepParam(${s.id},'mm',clampU32(this.value))"><span class="unit">mm</span>`;
+    else if(s.kind==='left'||s.kind==='right')mid=`<input type="number" inputmode="numeric" min="0" value="${s.deg}" oninput="setStepParam(${s.id},'deg',clampU32(this.value))"><span class="unit">°</span>`;
+    else if(s.kind==='sound')                 mid=`<input type="number" inputmode="numeric" min="0" max="998" value="${s.idx}" oninput="setStepParam(${s.id},'idx',clampSound(this.value))"><span class="unit">x###</span>`;
+    else if(s.kind==='pause')                 mid=`<input type="number" inputmode="numeric" min="0" value="${s.ms}" oninput="setStepParam(${s.id},'ms',clampU32(this.value))"><span class="unit">ms</span>`;
+    else if(s.kind==='led')                   mid=`<div class="seg-mini" data-k="color">${['r','g','b'].map(v=>`<button class="${s.color===v?'active':''}" onclick="setSeg(${s.id},'color','${v}',this)">${({r:'Red',g:'Grn',b:'Cyan'})[v]}</button>`).join('')}</div>`;
+    row.innerHTML=
+      `<span class="step-idx">${i+1}</span>`+
+      `<span class="step-icon" title="${t(STEP_LABEL[s.kind])}">${def.icon}</span>`+
+      mid+
+      `<span class="spacer"></span>`+
+      `<button class="ic" onclick="moveStep(${s.id},-1)">▲</button>`+
+      `<button class="ic" onclick="moveStep(${s.id},1)">▼</button>`+
+      `<button class="ic" onclick="dupStep(${s.id})">⧉</button>`+
+      `<button class="ic" onclick="removeStep(${s.id})">✕</button>`;
+    box.appendChild(row);
+  });
+  updateRunBtn();
+}
+function persistProgram(){ localStorage.setItem('ps_program',JSON.stringify(program)); }
+function restoreProgram(){ try{ const r=localStorage.getItem('ps_program'); if(r){ program=JSON.parse(r)||[]; pseq=program.reduce((m,s)=>Math.max(m,s.id),0)+1; } }catch(e){ program=[]; } }
+
+function updateRunBtn(){
+  const rb=document.getElementById('runBtn'), sb=document.getElementById('seqStopBtn');
+  if(rb) rb.disabled=!(state.connected && program.length && !running);
+  if(sb) sb.disabled=!running;
+  document.querySelectorAll('.palette .btn').forEach(b=>b.disabled=running);
+  const rep=document.getElementById('repeats'); if(rep) rep.disabled=running;
+}
+function highlightStep(i){ currentIdx=i; document.querySelectorAll('.steps .step-row').forEach((r,idx)=>{ r.classList.toggle('current',idx===i); r.classList.toggle('done', i>=0&&idx<i); }); }
+function clearHighlight(){ currentIdx=-1; document.querySelectorAll('.steps .step-row').forEach(r=>r.classList.remove('current','done')); }
+
+/* resolve the in-flight step promise (on 'free', grace, watchdog, or abort) */
+function resolveWaiter(){ if(!stepWaiter)return; const w=stepWaiter; stepWaiter=null; if(w.hardTimer)clearTimeout(w.hardTimer); w.resolve(); }
+
+/* write a blocking command and wait until the robot returns to 'free' */
+function seqSendWait(type,main,second){
+  return new Promise(resolve=>{
+    // Register the waiter BEFORE writing. The robot can emit 'busy' the instant the
+    // write lands — often before the awaited write even resolves. Registering first
+    // guarantees we capture that 'busy'; otherwise the later 'free' is ignored by the
+    // sawBusy gate and the step hangs until the watchdog. We then wait strictly for
+    // the busy → free cycle (no early 'grace' resolve → no move overlap/cascade).
+    const w={sawBusy:false,resolve,hardTimer:null}; stepWaiter=w;
+    const cap = stateChar ? WATCHDOG_MS : NO_FB_MS;   // free-gated; or time estimate when no feedback
+    w.hardTimer=setTimeout(()=>{ if(stepWaiter===w){ if(stateChar) logLine('step watchdog '+(WATCHDOG_MS/1000)+'s — moving on','err'); resolveWaiter(); } }, cap);
+    writeBuf(buildPacket(type,main,second)).then(ok=>{
+      if((!ok || aborted) && stepWaiter===w) resolveWaiter();   // write failed/aborted → don't wait
+    });
+  });
+}
+function seqSleep(ms){ return new Promise(resolve=>{ pauseResolve=resolve; pauseTimer=setTimeout(()=>{pauseTimer=null;pauseResolve=null;resolve();},ms); }); }
+
+async function execStep(s){
+  switch(s.kind){
+    case 'fwd':   return seqSendWait(CMD.move,'f'.charCodeAt(0),clampU32(s.mm));
+    case 'back':  return seqSendWait(CMD.move,'b'.charCodeAt(0),clampU32(s.mm));
+    case 'left':  return seqSendWait(CMD.move,'l'.charCodeAt(0),clampU32(s.deg));
+    case 'right': return seqSendWait(CMD.move,'r'.charCodeAt(0),clampU32(s.deg));
+    case 'sound': return seqSendWait(CMD.sound,clampSound(s.idx),0);
+    case 'led':   return seqSendWait(CMD.led,'b'.charCodeAt(0),s.color.charCodeAt(0)); // 'b' = both diodes
+    case 'pause': logLine('pause '+s.ms+' ms'); return seqSleep(clampU32(s.ms));
+  }
+}
+async function runProgram(){
+  if(running || !state.connected || !program.length) return;
+  const reps=Math.max(1,Math.min(999, clampU32(document.getElementById('repeats').value)||1));
+  running=true; aborted=false; updateRunBtn(); setControls(false);
+  logLine('▶ RUN — '+program.length+' steps × '+reps,'tx');
+  try{
+    for(let rep=0; rep<reps && !aborted; rep++){
+      for(let i=0; i<program.length && !aborted; i++){
+        highlightStep(i);
+        await execStep(program[i]);
+      }
+    }
+  }catch(e){ logLine('run error: '+e.message,'err'); }
+  running=false; clearHighlight();
+  if(state.connected) setControls(true); else updateRunBtn();
+  logLine(aborted?'■ STOPPED':'✓ DONE', aborted?'err':'rx');
+}
+function abortProgram(){
+  if(!running) return;
+  aborted=true;
+  if(pauseTimer){ clearTimeout(pauseTimer); pauseTimer=null; if(pauseResolve){pauseResolve();pauseResolve=null;} }
+  resolveWaiter();
+  if(cmdChar) writeBuf(buildPacket(CMD.break,0,0));   // cmd_break — stop the robot
+  logLine('STOP requested','err');
+}
+
 /* ============ wire up ============ */
 document.querySelectorAll('.pad .dir').forEach(btn=>{
   btn.addEventListener('click',()=>move(btn.dataset.cmd));
@@ -683,6 +870,7 @@ window.addEventListener('keydown',e=>{
   const tag=(document.activeElement&&document.activeElement.tagName)||'';
   if(tag==='INPUT'||tag==='TEXTAREA') return;
   if(!state.connected) return;
+  if(running) return;                       // program running → ignore manual keys (use Stop button)
   if(e.key===' '||e.code==='Space'){ e.preventDefault(); stop(); return; }
   const dir=KEY_DIR[e.key];
   if(dir){
@@ -694,7 +882,10 @@ window.addEventListener('keydown',e=>{
 });
 
 restoreParams();
+restoreProgram();
 setLang(lang);
+renderSteps();
+updateRunBtn();
 refreshLastBtn();
 checkCompat();
 logLine('PrimaSTEM Robot Control — ready');
