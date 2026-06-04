@@ -19,6 +19,7 @@ Browser-based control panel for the PrimaSTEM educational robot over **Bluetooth
 - **Keyboard control** — arrow keys move, `Space` stops (ignored while typing in a field).
 - **Sound** — play any on-board clip `x000`–`x998` with `−`/`+` steppers.
 - **LED** — left / both / right diode in red / green / cyan, plus a *Flash* action.
+- **Program sequencer** — a collapsible "Program" card: chain steps (move / turn / sound / LED / pause), reorder / duplicate / delete them, then run the sequence. Each blocking command waits for the robot's `free` state before the next runs; loop the whole program ×N, with an emergency stop. Programs are saved across sessions.
 - **Raw command sender** — craft any 9-byte packet by hand (`type` / `main` / `second`, or a raw hex string) for protocol probing.
 - **Busy/free status** — subscribes to the robot's state characteristic and locks the UI while the robot is busy, with a 15 s watchdog so a missed `free` never freezes the controls.
 - **Multilingual** — English / Français / Español / Deutsch / Nederlands, remembered across sessions.
