@@ -49,7 +49,7 @@ python -m http.server 8000
 
 # BLE Protocol
 
-![BLE packet structure](docs/primastem_ble_robot.jpg)
+![BLE packet structure](assets/primastem_ble_robot.jpg)
 
 ```mermaid
 graph TD
