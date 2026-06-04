@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -127,7 +127,9 @@
   <div class="lang">
     <button id="lang-en" class="active" onclick="setLang('en')">EN</button>
     <button id="lang-fr" onclick="setLang('fr')">FR</button>
-    <button id="lang-ru" onclick="setLang('ru')">RU</button>
+    <button id="lang-it" onclick="setLang('it')">IT</button>
+    <button id="lang-de" onclick="setLang('de')">DE</button>
+    <button id="lang-nl" onclick="setLang('nl')">NL</button>
   </div>
 </header>
 
@@ -264,25 +266,63 @@
 <script>
 /* ============ i18n ============ */
 const I18N = {
-  ru:{connect:"Подключиться",disconnect:"Отключиться",disconnected:"Не подключено",
-      connecting:"Подключение…",connected:"Подключено · готов",busy:"Робот выполняет команду…",
-      connectLast:"Последний",
-      distance:"Дистанция (мм)",angle:"Угол (°)",stop:"СТОП",
-      kbdHint:"Клавиши ↑↓←→ — движение, пробел — СТОП",
-      ledTitle:"Светодиоды",diode:"Диод",diodeL:"Левый",diodeR:"Правый",diodeB:"Оба",
-      color:"Цвет",colR:"Кр",colG:"Зел",colB:"Гол",ledApply:"Вспышка",
-      soundTitle:"Звук",soundFile:"Код звука x000–x998 (напр. x005)",play:"Играть",
-      soundHint:"Блокирующая: робот играет /spiffs/x{NNN}.mp3 (только x000–x998; n###, буквы, x999+ недоступны). Список — Audio Files Reference на docs.primastem.com.",
-      advanced:"⚙ Настройки BLE (UUID)",svc:"Сервис",cmd:"Команда",state:"Статус",
-      uuidHint:"Реальные 128-битные UUID прошивки. Меняй только если прошивка использует другие — затем переподключись.",
-      rawTitle:"🛠 Сырая команда (hex)",rawType:"type",rawSend:"Отпр.",
-      rawBytes:"9 байт hex (перекрывает поля выше)",
-      rawHint:"type/main/second принимают dec или 0x.. — пакет собирается LE (9 байт). Поле «9 байт hex» отправляет байты как есть — для теста cmd_lvl (0x06) и др. Неблокирующая.",
-      watchdogWarn:"⚠ Watchdog: статус «free» не пришёл за {n} с — кнопки разблокированы.",
-      foot:"Web Bluetooth · работает в Chrome / Edge на Android, Windows, macOS, Linux. На iPhone/iPad — через браузер Bluefy.",
-      docsLabel:"Документация здесь —",
-      noWebBT:"⚠ Этот браузер не поддерживает Web Bluetooth. Открой страницу в Chrome или Edge (на ПК/Android), либо в браузере Bluefy на iOS.",
-      needHTTPS:"⚠ Web Bluetooth не работает при открытии файла напрямую (file://). Нужен HTTPS или localhost: размести файл на GitHub Pages / своём сайте по https://, либо запусти локальный сервер (python -m http.server) и открой http://localhost:8000."},
+  it:{connect:"Connetti",disconnect:"Disconnetti",disconnected:"Non connesso",
+      connecting:"Connessione…",connected:"Connesso · pronto",busy:"Il robot sta eseguendo…",
+      connectLast:"Ultimo",
+      distance:"Distanza (mm)",angle:"Angolo (°)",stop:"STOP",
+      kbdHint:"Tasti ↑↓←→ — movimento, Spazio — STOP",
+      ledTitle:"LED",diode:"Diodo",diodeL:"Sinistro",diodeR:"Destro",diodeB:"Entrambi",
+      color:"Colore",colR:"Ros",colG:"Ver",colB:"Ciano",ledApply:"Flash",
+      soundTitle:"Suono",soundFile:"Codice suono x000–x998 (es. x005)",play:"Riproduci",
+      soundHint:"Bloccante: il robot riproduce /spiffs/x{NNN}.mp3 (solo x000–x998; n###, lettere, x999+ non disponibili). Elenco nell’Audio Files Reference su docs.primastem.com.",
+      advanced:"⚙ Impostazioni BLE (UUID)",svc:"Servizio",cmd:"Comando",state:"Stato",
+      uuidHint:"UUID a 128 bit reali del firmware. Modificali solo se il firmware ne usa altri — poi riconnettiti.",
+      rawTitle:"🛠 Comando grezzo (hex)",rawType:"type",rawSend:"Invia",
+      rawBytes:"9 byte hex (sovrascrive i campi sopra)",
+      rawHint:"type/main/second accettano dec o 0x.. — il pacchetto è costruito in LE (9 byte). Il campo «9 byte hex» invia i byte così come sono — per testare cmd_lvl (0x06) e altri. Non bloccante.",
+      watchdogWarn:"⚠ Watchdog: nessuno stato «free» entro {n}s — comandi sbloccati.",
+      foot:"Web Bluetooth · funziona in Chrome / Edge su Android, Windows, macOS, Linux. Su iPhone/iPad tramite il browser Bluefy.",
+      docsLabel:"Documentazione qui —",
+      noWebBT:"⚠ Questo browser non supporta Web Bluetooth. Apri la pagina in Chrome o Edge (PC/Android), oppure nel browser Bluefy su iOS.",
+      needHTTPS:"⚠ Web Bluetooth non funziona aprendo il file direttamente (file://). Serve HTTPS o localhost: ospita il file su GitHub Pages / il tuo sito via https://, oppure avvia un server locale (python -m http.server) e apri http://localhost:8000."},
+  de:{connect:"Verbinden",disconnect:"Trennen",disconnected:"Nicht verbunden",
+      connecting:"Verbinde…",connected:"Verbunden · bereit",busy:"Roboter führt aus…",
+      connectLast:"Letzter",
+      distance:"Distanz (mm)",angle:"Winkel (°)",stop:"STOPP",
+      kbdHint:"Tasten ↑↓←→ — Bewegung, Leertaste — STOPP",
+      ledTitle:"LED",diode:"Diode",diodeL:"Links",diodeR:"Rechts",diodeB:"Beide",
+      color:"Farbe",colR:"Rot",colG:"Grün",colB:"Cyan",ledApply:"Blitz",
+      soundTitle:"Ton",soundFile:"Toncode x000–x998 (z. B. x005)",play:"Abspielen",
+      soundHint:"Blockierend: der Roboter spielt /spiffs/x{NNN}.mp3 (nur x000–x998; n###, Buchstaben, x999+ nicht verfügbar). Liste in der Audio Files Reference auf docs.primastem.com.",
+      advanced:"⚙ BLE-Einstellungen (UUID)",svc:"Dienst",cmd:"Befehl",state:"Status",
+      uuidHint:"Echte 128-Bit-Firmware-UUIDs. Nur ändern, wenn die Firmware andere verwendet — dann neu verbinden.",
+      rawTitle:"🛠 Roh-Befehl (hex)",rawType:"type",rawSend:"Senden",
+      rawBytes:"9 Byte hex (überschreibt Felder oben)",
+      rawHint:"type/main/second akzeptieren dez oder 0x.. — Paket wird in LE gebaut (9 Byte). Das Feld „9 Byte hex“ sendet die Bytes unverändert — zum Testen von cmd_lvl (0x06) u. a. Nicht blockierend.",
+      watchdogWarn:"⚠ Watchdog: kein „free“-Status innerhalb von {n}s — Bedienelemente entsperrt.",
+      foot:"Web Bluetooth · funktioniert in Chrome / Edge auf Android, Windows, macOS, Linux. Auf iPhone/iPad über den Bluefy-Browser.",
+      docsLabel:"Dokumentation hier —",
+      noWebBT:"⚠ Dieser Browser unterstützt Web Bluetooth nicht. Öffne die Seite in Chrome oder Edge (PC/Android) oder im Bluefy-Browser auf iOS.",
+      needHTTPS:"⚠ Web Bluetooth funktioniert nicht beim direkten Öffnen der Datei (file://). Es braucht HTTPS oder localhost: hoste die Datei auf GitHub Pages / deiner Website über https://, oder starte einen lokalen Server (python -m http.server) und öffne http://localhost:8000."},
+  nl:{connect:"Verbinden",disconnect:"Verbreken",disconnected:"Niet verbonden",
+      connecting:"Verbinden…",connected:"Verbonden · gereed",busy:"Robot voert uit…",
+      connectLast:"Laatste",
+      distance:"Afstand (mm)",angle:"Hoek (°)",stop:"STOP",
+      kbdHint:"Toetsen ↑↓←→ — bewegen, Spatie — STOP",
+      ledTitle:"LED",diode:"Diode",diodeL:"Links",diodeR:"Rechts",diodeB:"Beide",
+      color:"Kleur",colR:"Rood",colG:"Grn",colB:"Cyaan",ledApply:"Flits",
+      soundTitle:"Geluid",soundFile:"Geluidscode x000–x998 (bijv. x005)",play:"Afspelen",
+      soundHint:"Blokkerend: de robot speelt /spiffs/x{NNN}.mp3 (alleen x000–x998; n###, letters, x999+ niet beschikbaar). Lijst in de Audio Files Reference op docs.primastem.com.",
+      advanced:"⚙ BLE-instellingen (UUID)",svc:"Service",cmd:"Commando",state:"Status",
+      uuidHint:"Echte 128-bits firmware-UUID's. Wijzig alleen als de firmware andere gebruikt — daarna opnieuw verbinden.",
+      rawTitle:"🛠 Ruwe opdracht (hex)",rawType:"type",rawSend:"Verzend",
+      rawBytes:"9 bytes hex (overschrijft velden hierboven)",
+      rawHint:"type/main/second accepteren dec of 0x.. — pakket wordt in LE gebouwd (9 bytes). Het veld «9 bytes hex» verzendt de bytes ongewijzigd — voor het testen van cmd_lvl (0x06) e.a. Niet blokkerend.",
+      watchdogWarn:"⚠ Watchdog: geen «free»-status binnen {n}s — bediening ontgrendeld.",
+      foot:"Web Bluetooth · werkt in Chrome / Edge op Android, Windows, macOS, Linux. Op iPhone/iPad via de Bluefy-browser.",
+      docsLabel:"Documentatie hier —",
+      noWebBT:"⚠ Deze browser ondersteunt Web Bluetooth niet. Open de pagina in Chrome of Edge (pc/Android), of in de Bluefy-browser op iOS.",
+      needHTTPS:"⚠ Web Bluetooth werkt niet bij het rechtstreeks openen van het bestand (file://). Het vereist HTTPS of localhost: host het bestand op GitHub Pages / je site via https://, of start een lokale server (python -m http.server) en open http://localhost:8000."},
   en:{connect:"Connect",disconnect:"Disconnect",disconnected:"Not connected",
       connecting:"Connecting…",connected:"Connected · ready",busy:"Robot is executing…",
       connectLast:"Last",
@@ -328,7 +368,7 @@ function t(k){return (I18N[lang]&&I18N[lang][k])||k;}
 function setLang(l){
   lang=l; localStorage.setItem('ps_lang',l);
   document.documentElement.lang=l;
-  ['en','fr','ru'].forEach(code=>{
+  ['en','fr','it','de','nl'].forEach(code=>{
     const b=document.getElementById('lang-'+code);
     if(b) b.classList.toggle('active',l===code);
   });

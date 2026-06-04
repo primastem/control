@@ -21,7 +21,7 @@ Browser-based control panel for the PrimaSTEM educational robot over **Bluetooth
 - **LED** — left / both / right diode in red / green / cyan, plus a *Flash* action.
 - **Raw command sender** — craft any 9-byte packet by hand (`type` / `main` / `second`, or a raw hex string) for protocol probing.
 - **Busy/free status** — subscribes to the robot's state characteristic and locks the UI while the robot is busy, with a 15 s watchdog so a missed `free` never freezes the controls.
-- **Multilingual** — English / Français / Русский, remembered across sessions.
+- **Multilingual** — English / Français / Italiano / Deutsch / Nederlands, remembered across sessions.
 - **PrimaSTEM dark theme**, mobile-first layout.
 
 ## Quick start
