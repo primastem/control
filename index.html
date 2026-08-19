@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PrimaSTEM Robot Control</title>
 <style>
   :root{
@@ -62,14 +62,16 @@
 
   .pad{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,68px);gap:10px}
   .pad .btn{font-size:26px;height:100%}
-  .dir{background:var(--card2);border:1px solid var(--line);color:var(--txt)}
+  .dir{background:var(--card2);border:1px solid var(--line);color:var(--txt);flex-direction:column;gap:3px}
   .dir:not(:disabled):active{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+  .dir:not(:disabled):active .pval{color:var(--on-accent)}
+  .pval{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.2px}
   #fwd{grid-column:2;grid-row:1}
   #left{grid-column:1;grid-row:2}
   #stop{grid-column:2;grid-row:2;background:linear-gradient(135deg,var(--danger),var(--danger2));color:#fff;font-size:15px;font-weight:800}
   #right{grid-column:3;grid-row:2}
   #back{grid-column:2;grid-row:3}
-  .kbdhint{font-size:11px;color:#55636f;margin-top:10px;text-align:center}
+  .kbdhint{font-size:11px;color:var(--muted);margin-top:10px;text-align:center}
 
   /* segmented control */
   .seg-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
@@ -85,6 +87,7 @@
   .seg.colors button.active[data-v="g"]{background:#22c55e}
   .seg.colors button.active[data-v="b"]{background:#38bdf8;color:#06283a}
   .seg.colors button.active[data-v="w"]{background:#f5f5f5;color:#111}
+  .seg.colors button{padding:10px 3px;font-size:12px}
 
   .inline-row{display:flex;gap:8px;align-items:flex-end}
   .inline-row .param{margin:0;flex:2 1 0;min-width:0}
@@ -95,12 +98,15 @@
   .step:not(:disabled):active{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 
   details{margin-top:6px;border-top:1px solid var(--line);padding-top:12px}
+  .card>details:first-child{margin-top:0;border-top:0;padding-top:0}
   summary{cursor:pointer;color:var(--muted);font-size:13px;font-weight:600;user-select:none}
   .uuid-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px}
   .uuid-grid label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
   .uuid-grid input{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:8px;
     color:var(--txt);padding:8px;font-size:13px;text-align:center;outline:none}
   .hint{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
+  .hint a{color:var(--accent);text-decoration:none;font-weight:700}
+  .hint a:hover{color:var(--accent2)}
 
   .raw-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin-top:10px;align-items:end}
   .raw-grid label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
@@ -115,9 +121,11 @@
   .palette .prow{display:flex;gap:8px}
   .palette .btn{flex:1;background:var(--card2);border:1px solid var(--line);color:var(--txt);font-size:13px;padding:10px 6px}
   .palette .btn:not(:disabled):active{background:var(--accent);color:var(--on-accent)}
-  .palette .btn-wide,.palette .btn-clear{width:100%}
+  .palette .btn-wide{width:100%}
+  .btn-clear{width:100%;margin-top:8px;background:transparent;border:1px solid var(--line);color:var(--muted);font-size:13px;padding:10px 6px}
+  .btn-clear.confirm{background:linear-gradient(135deg,var(--danger),var(--danger2));color:#fff;border-color:transparent}
   .steps{display:flex;flex-direction:column;gap:6px;min-height:36px}
-  .empty{color:#55636f;font-size:13px;text-align:center;padding:12px 0}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:12px 0}
   .step-row{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px}
   .step-row.current{border-color:var(--accent);box-shadow:0 0 0 2px rgba(104,184,51,.35)}
   .step-row.done{opacity:.5}
@@ -130,15 +138,27 @@
   .step-row .seg-mini button:first-child{border-left:0}
   .step-row .seg-mini button.active{background:var(--accent);color:var(--on-accent)}
   .step-row .spacer{flex:1 1 auto}
-  .step-row .ic{background:transparent;border:0;color:var(--muted);cursor:pointer;font-size:14px;padding:2px;line-height:1;flex:0 0 auto}
-  .step-row .ic:hover{color:var(--txt)}
+  .step-row .ic{background:transparent;border:0;color:var(--muted);cursor:pointer;width:36px;height:36px;border-radius:8px;
+    display:grid;place-items:center;padding:0;line-height:1;flex:0 0 auto}
+  .step-row .ic:hover{color:var(--txt);background:rgba(255,255,255,.06)}
+  .step-row .ic-gap{width:8px;flex:0 0 auto}
+  /* narrow phones (≈320px): four 36px targets no longer fit — tighten, don't drop controls */
+  @media (max-width:380px){
+    .step-row{gap:4px;padding:6px}
+    .step-idx{width:12px}
+    .step-icon{width:20px}
+    .step-row input{width:46px}
+    .step-row .ic{width:32px;height:32px}
+    .step-row .ic-gap{width:4px}
+    .unit{font-size:10px}
+  }
   .unit{font-size:11px;color:var(--muted);flex:0 0 auto}
-  .run-row{display:flex;gap:10px;align-items:center;margin-top:14px}
-  .run-row .rep{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-  .run-row .rep input{width:54px;background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:8px;text-align:center;font-weight:700;outline:none}
+  .run-row{display:flex;gap:10px;align-items:flex-end;margin-top:14px}
+  .run-row .rep{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);font-weight:600;text-align:center;flex:0 0 auto}
+  .run-row .rep input{width:58px;background:var(--card2);border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:11px 8px;text-align:center;font-weight:700;font-size:15px;outline:none}
   .btn-danger{background:linear-gradient(135deg,var(--danger),var(--danger2));color:#fff}
 
-  .log{width:100%;max-width:480px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
+  .log{width:100%;max-width:480px;margin-top:10px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;
     color:var(--muted);background:#0d0f0c;border:1px solid var(--line);border-radius:10px;
     padding:10px;height:84px;overflow-y:auto;white-space:pre-wrap;line-height:1.45}
   .log .tx{color:var(--accent)}
@@ -146,7 +166,17 @@
   .log .err{color:var(--danger)}
   .warn{width:100%;max-width:480px;background:#3b2a12;border:1px solid #6b4d1f;color:#fbbf24;
     border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5;display:none}
-  footer{max-width:480px;font-size:11px;color:#55636f;text-align:center;line-height:1.5}
+  footer{max-width:480px;font-size:11px;color:var(--muted);text-align:center;line-height:1.5}
+  /* card header with collapse toggle */
+  .card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;user-select:none}
+  .card-head h3{margin:0}
+  .card-head .cnt{color:#6f736d;font-weight:600;text-transform:none;letter-spacing:0}
+  .chev{background:transparent;border:0;color:var(--muted);width:28px;height:28px;border-radius:8px;
+    display:grid;place-items:center;cursor:pointer;flex:0 0 auto;transition:transform .15s ease}
+  .card-head[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+  .prog-body[hidden]{display:none}
+  /* visually hidden, still read by screen readers */
+  .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 </head>
 <body>
@@ -177,6 +207,7 @@
 
 <!-- ===== Движение ===== -->
 <div class="card">
+  <h3 data-i18n="moveTitle">Движение</h3>
   <div class="params">
     <div class="param">
       <label data-i18n="distance">Дистанция (мм)</label>
@@ -204,30 +235,92 @@
   </div>
 
   <div class="pad">
-    <button id="fwd"   class="btn dir" data-cmd="f" disabled>▲</button>
-    <button id="left"  class="btn dir" data-cmd="l" disabled>◀</button>
+    <button id="fwd" class="btn dir" data-cmd="f" disabled>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5.5 11.5 12 5l6.5 6.5"/></svg>
+      <span class="sr" data-i18n="aForward">Вперёд</span><span class="pval" id="valDist">150</span>
+    </button>
+    <button id="left" class="btn dir" data-cmd="l" disabled>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      <span class="sr" data-i18n="aLeft">Влево</span><span class="pval" id="valAngL">90°</span>
+    </button>
     <button id="stop"  class="btn"     disabled data-i18n="stop">СТОП</button>
-    <button id="right" class="btn dir" data-cmd="r" disabled>▶</button>
-    <button id="back"  class="btn dir" data-cmd="b" disabled>▼</button>
+    <button id="right" class="btn dir" data-cmd="r" disabled>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <span class="sr" data-i18n="aRight">Вправо</span><span class="pval" id="valAngR">90°</span>
+    </button>
+    <button id="back" class="btn dir" data-cmd="b" disabled>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M18.5 12.5 12 19l-6.5-6.5"/></svg>
+      <span class="sr" data-i18n="aBack">Назад</span><span class="pval" id="valDistB">150</span>
+    </button>
   </div>
   <div class="kbdhint" data-i18n="kbdHint">Клавиши ↑↓←→ — движение, пробел — СТОП</div>
+</div>
+
+<!-- ===== Программа (конструктор) ===== -->
+<div class="card">
+  <div class="card-head" id="progHead" onclick="toggleProg()" role="button" tabindex="0" aria-expanded="true" aria-controls="progBody">
+    <h3><span data-i18n="progTitle">Программа</span> <span class="cnt" id="progCount"></span></h3>
+    <span class="chev" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+  </div>
+  <div class="prog-body" id="progBody">
+    <div class="palette">
+      <button class="btn btn-wide" onclick="addStep('fwd')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V5"/><path d="M5.5 11.5 12 5l6.5 6.5"/></svg>
+        <span data-i18n="aForward">Вперёд</span></button>
+      <div class="prow">
+        <button class="btn" onclick="addStep('left')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          <span data-i18n="aLeft">Влево</span></button>
+        <button class="btn" onclick="addStep('right')">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          <span data-i18n="aRight">Вправо</span></button>
+      </div>
+      <button class="btn btn-wide" onclick="addStep('back')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v15"/><path d="M18.5 12.5 12 19l-6.5-6.5"/></svg>
+        <span data-i18n="aBack">Назад</span></button>
+      <div class="prow">
+        <button class="btn" onclick="addStep('sound')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+          <span data-i18n="aSound">Звук</span></button>
+        <button class="btn" onclick="addStep('led')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>
+          <span data-i18n="aLed">LED</span></button>
+        <button class="btn" onclick="addStep('pause')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          <span data-i18n="aPause">Пауза</span></button>
+      </div>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="run-row">
+      <button id="runBtn" class="btn btn-primary" onclick="runProgram()" disabled>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20"/></svg>
+        <span data-i18n="run">Запуск</span></button>
+      <label class="rep"><span data-i18n="repeat">Повтор</span><input id="repeats" type="number" inputmode="numeric" min="1" max="999" value="1"></label>
+      <button id="seqStopBtn" class="btn btn-danger" onclick="abortProgram()" disabled>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+        <span data-i18n="stop">СТОП</span></button>
+    </div>
+    <button class="btn btn-clear" id="clearBtn" onclick="clearProgram()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      <span id="clearLabel" data-i18n="clear">Удалить программу</span></button>
+  </div>
 </div>
 
 <!-- ===== Звук ===== -->
 <div class="card">
   <h3 data-i18n="soundTitle">Звук</h3>
   <div class="inline-row">
-    <button class="btn step" onclick="stepSound(-1)" aria-label="−" title="−">−</button>
+    <button class="btn step" onclick="stepSound(-1)" data-i18n-aria="soundPrev" title="−">−</button>
     <div class="param">
-      <label data-i18n="soundFile">Имя файла (4 символа, напр. x005)</label>
+      <label data-i18n="soundFile">Код звука</label>
       <input id="soundFile" type="text" maxlength="4" autocapitalize="off" autocomplete="off"
              spellcheck="false" value="x005" placeholder="x005"
              style="text-transform:lowercase;letter-spacing:2px;font-family:ui-monospace,Consolas,monospace">
     </div>
-    <button class="btn step" onclick="stepSound(1)" aria-label="+" title="+">+</button>
+    <button class="btn step" onclick="stepSound(1)" data-i18n-aria="soundNext" title="+">+</button>
     <button id="soundPlay" class="btn btn-primary" onclick="playSound()" disabled data-i18n="play">Играть</button>
   </div>
-  <div class="hint" data-i18n="soundHint">Блокирующая: робот играет /spiffs/x{NNN}.mp3 (только x000–x998; n###, буквы, x999+ недоступны). Список — Audio Files Reference на docs.primastem.com.</div>
+  <div class="hint"><span data-i18n="soundHint">Файлы x000–x998</span> · <a href="https://docs.primastem.com" target="_blank" rel="noopener" data-i18n="soundList">список звуков</a></div>
 </div>
 
 <!-- ===== Светодиоды ===== -->
@@ -252,33 +345,6 @@
     </div>
     <button id="ledApply" class="btn btn-primary" onclick="applyLed()" disabled data-i18n="ledApply">Вспышка</button>
   </div>
-</div>
-
-<!-- ===== Программа (конструктор) ===== -->
-<div class="card">
-  <details>
-    <summary data-i18n="progTitle">Программа</summary>
-    <div class="palette">
-      <button class="btn btn-wide" onclick="addStep('fwd')">＋ ▲ <span data-i18n="aForward">Forward</span></button>
-      <div class="prow">
-        <button class="btn" onclick="addStep('left')">＋ ◀ <span data-i18n="aLeft">Turn L</span></button>
-        <button class="btn" onclick="addStep('right')">＋ ▶ <span data-i18n="aRight">Turn R</span></button>
-      </div>
-      <button class="btn btn-wide" onclick="addStep('back')">＋ ▼ <span data-i18n="aBack">Back</span></button>
-      <div class="prow">
-        <button class="btn" onclick="addStep('sound')">＋ ♪ <span data-i18n="aSound">Sound</span></button>
-        <button class="btn" onclick="addStep('led')">＋ ● <span data-i18n="aLed">LED</span></button>
-        <button class="btn" onclick="addStep('pause')">＋ ⏸ <span data-i18n="aPause">Pause</span></button>
-      </div>
-      <button class="btn btn-clear" onclick="clearProgram()">🗑 <span data-i18n="clear">Delete program</span></button>
-    </div>
-    <div class="steps" id="steps"></div>
-    <div class="run-row">
-      <button id="runBtn" class="btn btn-primary" onclick="runProgram()" disabled>▶ <span data-i18n="run">Run</span></button>
-      <label class="rep">× <input id="repeats" type="number" inputmode="numeric" min="1" max="999" value="1"></label>
-      <button id="seqStopBtn" class="btn btn-danger" onclick="abortProgram()" disabled>■ <span data-i18n="stop">СТОП</span></button>
-    </div>
-  </details>
 </div>
 
 <!-- ===== Доп. настройки ===== -->
@@ -310,9 +376,12 @@
     </div>
     <div class="hint" data-i18n="rawHint">type/main/second принимают dec или 0x.. — пакет собирается LE (9 байт). Поле «9 байт hex» отправляет байты как есть — для теста cmd_lvl (0x06) и др. Неблокирующая.</div>
   </details>
-</div>
 
-<div class="log" id="log"></div>
+  <details>
+    <summary data-i18n="logTitle">Лог</summary>
+    <div class="log" id="log"></div>
+  </details>
+</div>
 
 <footer>
   <span data-i18n="foot">Web Bluetooth · работает в Chrome / Edge на Android, Windows, macOS, Linux. На iPhone/iPad — через браузер Bluefy.</span>
@@ -326,12 +395,15 @@ const I18N = {
       connecting:"Conectando…",connected:"Conectado · listo",busy:"El robot está ejecutando…",
       connectLast:"Último",
       progTitle:"Programa",aForward:"Avanzar",aBack:"Retroceder",aLeft:"Girar I",aRight:"Girar D",aSound:"Sonido",aLed:"LED",aPause:"Pausa",clear:"Eliminar programa",run:"Ejecutar",emptyProg:"Sin pasos aún — añade desde la paleta de arriba.",
+      moveTitle:"Movimiento",repeat:"Repetir",soundList:"lista de sonidos",logTitle:"Registro",
+      soundPrev:"Sonido anterior",soundNext:"Sonido siguiente",
+      sUp:"Subir paso",sDown:"Bajar paso",sDup:"Duplicar paso",sDel:"Eliminar paso",clearConfirm:"¿Eliminar {n}? · Confirmar",
       distance:"Distancia (mm)",angle:"Ángulo (°)",stop:"PARAR",
       kbdHint:"Teclas ↑↓←→ — movimiento, Espacio — PARAR",
       ledTitle:"LED",diode:"Diodo",diodeL:"Izquierdo",diodeR:"Derecho",diodeB:"Ambos",
-      color:"Color",colR:"Roj",colG:"Ver",colB:"Cian",ledApply:"Destello",
-      soundTitle:"Sonido",soundFile:"Código de sonido x000–x998 (p. ej. x005)",play:"Reproducir",
-      soundHint:"Bloqueante: el robot reproduce /spiffs/x{NNN}.mp3 (solo x000–x998; n###, letras, x999+ no disponibles). Lista en el Audio Files Reference en docs.primastem.com.",
+      color:"Color",colR:"Rojo",colG:"Verde",colB:"Cian",ledApply:"Destello",
+      soundTitle:"Sonido",soundFile:"Código de sonido",play:"Reproducir",
+      soundHint:"Archivos x000–x998",
       advanced:"⚙ Ajustes BLE (UUID)",svc:"Servicio",cmd:"Comando",state:"Estado",
       uuidHint:"UUID de 128 bits reales del firmware. Cámbialos solo si el firmware usa otros — luego reconéctate.",
       rawTitle:"🛠 Comando en bruto (hex)",rawType:"type",rawSend:"Enviar",
@@ -346,12 +418,15 @@ const I18N = {
       connecting:"Verbinde…",connected:"Verbunden · bereit",busy:"Roboter führt aus…",
       connectLast:"Letzter",
       progTitle:"Programm",aForward:"Vorwärts",aBack:"Zurück",aLeft:"Drehen L",aRight:"Drehen R",aSound:"Ton",aLed:"LED",aPause:"Pause",clear:"Programm löschen",run:"Start",emptyProg:"Noch keine Schritte — über die Palette oben hinzufügen.",
+      moveTitle:"Bewegung",repeat:"Wdh.",soundList:"Tonliste",logTitle:"Protokoll",
+      soundPrev:"Vorheriger Ton",soundNext:"Nächster Ton",
+      sUp:"Schritt nach oben",sDown:"Schritt nach unten",sDup:"Schritt duplizieren",sDel:"Schritt löschen",clearConfirm:"{n} löschen? · Bestätigen",
       distance:"Distanz (mm)",angle:"Winkel (°)",stop:"STOPP",
       kbdHint:"Tasten ↑↓←→ — Bewegung, Leertaste — STOPP",
       ledTitle:"LED",diode:"Diode",diodeL:"Links",diodeR:"Rechts",diodeB:"Beide",
       color:"Farbe",colR:"Rot",colG:"Grün",colB:"Cyan",ledApply:"Blitz",
-      soundTitle:"Ton",soundFile:"Toncode x000–x998 (z. B. x005)",play:"Abspielen",
-      soundHint:"Blockierend: der Roboter spielt /spiffs/x{NNN}.mp3 (nur x000–x998; n###, Buchstaben, x999+ nicht verfügbar). Liste in der Audio Files Reference auf docs.primastem.com.",
+      soundTitle:"Ton",soundFile:"Toncode",play:"Abspielen",
+      soundHint:"Dateien x000–x998",
       advanced:"⚙ BLE-Einstellungen (UUID)",svc:"Dienst",cmd:"Befehl",state:"Status",
       uuidHint:"Echte 128-Bit-Firmware-UUIDs. Nur ändern, wenn die Firmware andere verwendet — dann neu verbinden.",
       rawTitle:"🛠 Roh-Befehl (hex)",rawType:"type",rawSend:"Senden",
@@ -366,12 +441,15 @@ const I18N = {
       connecting:"Verbinden…",connected:"Verbonden · gereed",busy:"Robot voert uit…",
       connectLast:"Laatste",
       progTitle:"Programma",aForward:"Vooruit",aBack:"Achteruit",aLeft:"Draai L",aRight:"Draai R",aSound:"Geluid",aLed:"LED",aPause:"Pauze",clear:"Programma wissen",run:"Start",emptyProg:"Nog geen stappen — voeg toe via het palet hierboven.",
+      moveTitle:"Beweging",repeat:"Herhaal",soundList:"geluidenlijst",logTitle:"Log",
+      soundPrev:"Vorig geluid",soundNext:"Volgend geluid",
+      sUp:"Stap omhoog",sDown:"Stap omlaag",sDup:"Stap dupliceren",sDel:"Stap verwijderen",clearConfirm:"{n} wissen? · Bevestig",
       distance:"Afstand (mm)",angle:"Hoek (°)",stop:"STOP",
       kbdHint:"Toetsen ↑↓←→ — bewegen, Spatie — STOP",
       ledTitle:"LED",diode:"Diode",diodeL:"Links",diodeR:"Rechts",diodeB:"Beide",
-      color:"Kleur",colR:"Rood",colG:"Grn",colB:"Cyaan",ledApply:"Flits",
-      soundTitle:"Geluid",soundFile:"Geluidscode x000–x998 (bijv. x005)",play:"Afspelen",
-      soundHint:"Blokkerend: de robot speelt /spiffs/x{NNN}.mp3 (alleen x000–x998; n###, letters, x999+ niet beschikbaar). Lijst in de Audio Files Reference op docs.primastem.com.",
+      color:"Kleur",colR:"Rood",colG:"Groen",colB:"Cyaan",ledApply:"Flits",
+      soundTitle:"Geluid",soundFile:"Geluidscode",play:"Afspelen",
+      soundHint:"Bestanden x000–x998",
       advanced:"⚙ BLE-instellingen (UUID)",svc:"Service",cmd:"Commando",state:"Status",
       uuidHint:"Echte 128-bits firmware-UUID's. Wijzig alleen als de firmware andere gebruikt — daarna opnieuw verbinden.",
       rawTitle:"🛠 Ruwe opdracht (hex)",rawType:"type",rawSend:"Verzend",
@@ -386,12 +464,15 @@ const I18N = {
       connecting:"Connecting…",connected:"Connected · ready",busy:"Robot is executing…",
       connectLast:"Last",
       progTitle:"Program",aForward:"Forward",aBack:"Back",aLeft:"Turn L",aRight:"Turn R",aSound:"Sound",aLed:"LED",aPause:"Pause",clear:"Delete program",run:"Run",emptyProg:"No steps yet — add from the palette above.",
+      moveTitle:"Movement",repeat:"Repeat",soundList:"sound list",logTitle:"Log",
+      soundPrev:"Previous sound",soundNext:"Next sound",
+      sUp:"Move step up",sDown:"Move step down",sDup:"Duplicate step",sDel:"Delete step",clearConfirm:"Delete {n}? · Confirm",
       distance:"Distance (mm)",angle:"Angle (°)",stop:"STOP",
       kbdHint:"Keys ↑↓←→ — move, Space — STOP",
       ledTitle:"LED",diode:"Diode",diodeL:"Left",diodeR:"Right",diodeB:"Both",
-      color:"Color",colR:"Red",colG:"Grn",colB:"Cyan",ledApply:"Flash",
-      soundTitle:"Sound",soundFile:"Sound code x000–x998 (e.g. x005)",play:"Play",
-      soundHint:"Blocking: the robot plays /spiffs/x{NNN}.mp3 (only x000–x998; n###, letters, x999+ unavailable). File list in the Audio Files Reference at docs.primastem.com.",
+      color:"Color",colR:"Red",colG:"Green",colB:"Cyan",ledApply:"Flash",
+      soundTitle:"Sound",soundFile:"Sound code",play:"Play",
+      soundHint:"Files x000–x998",
       advanced:"⚙ BLE settings (UUID)",svc:"Service",cmd:"Command",state:"State",
       uuidHint:"Real 128-bit firmware UUIDs. Change only if the firmware uses different ones — then reconnect.",
       rawTitle:"🛠 Raw command (hex)",rawType:"type",rawSend:"Send",
@@ -406,12 +487,15 @@ const I18N = {
       connecting:"Connexion…",connected:"Connecté · prêt",busy:"Le robot exécute une commande…",
       connectLast:"Dernier",
       progTitle:"Programme",aForward:"Avancer",aBack:"Reculer",aLeft:"Tourner G",aRight:"Tourner D",aSound:"Son",aLed:"LED",aPause:"Pause",clear:"Supprimer le programme",run:"Lancer",emptyProg:"Aucune étape — ajoutez depuis la palette ci-dessus.",
+      moveTitle:"Déplacement",repeat:"Répéter",soundList:"liste des sons",logTitle:"Journal",
+      soundPrev:"Son précédent",soundNext:"Son suivant",
+      sUp:"Monter l’étape",sDown:"Descendre l’étape",sDup:"Dupliquer l’étape",sDel:"Supprimer l’étape",clearConfirm:"Supprimer {n} ? · Confirmer",
       distance:"Distance (mm)",angle:"Angle (°)",stop:"STOP",
       kbdHint:"Touches ↑↓←→ — déplacement, Espace — STOP",
       ledTitle:"LED",diode:"Diode",diodeL:"Gauche",diodeR:"Droite",diodeB:"Les deux",
-      color:"Couleur",colR:"Rge",colG:"Vrt",colB:"Cyan",ledApply:"Flash",
-      soundTitle:"Son",soundFile:"Code son x000–x998 (ex. x005)",play:"Jouer",
-      soundHint:"Bloquante : le robot joue /spiffs/x{NNN}.mp3 (uniquement x000–x998 ; n###, lettres, x999+ indisponibles). Liste dans l’Audio Files Reference sur docs.primastem.com.",
+      color:"Couleur",colR:"Rouge",colG:"Vert",colB:"Cyan",ledApply:"Flash",
+      soundTitle:"Son",soundFile:"Code son",play:"Jouer",
+      soundHint:"Fichiers x000–x998",
       advanced:"⚙ Réglages BLE (UUID)",svc:"Service",cmd:"Commande",state:"État",
       uuidHint:"Vrais UUID 128 bits du firmware. À modifier seulement si le firmware en utilise d’autres — puis reconnectez-vous.",
       rawTitle:"🛠 Commande brute (hex)",rawType:"type",rawSend:"Env.",
@@ -434,10 +518,12 @@ function setLang(l){
     if(b) b.classList.toggle('active',l===code);
   });
   document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n);});
+  document.querySelectorAll('[data-i18n-aria]').forEach(el=>{el.setAttribute('aria-label',t(el.dataset.i18nAria));});
   updateStatus(state.status);
   refreshLastBtn();
   checkCompat(true);
   if(typeof renderSteps==='function') renderSteps();   // refresh sequencer step labels/empty text
+  if(typeof updateProgCount==='function') updateProgCount();
 }
 
 /* ============ BLE ============ */
@@ -707,19 +793,56 @@ function sendRawHex(){
 const NO_FB_MS=3000;       // time estimate per step when robot gives no state feedback
 let program=[], pseq=1, running=false, aborted=false, currentIdx=-1;
 let stepWaiter=null, pauseTimer=null, pauseResolve=null;
+/* inline SVG icons — a glyph cannot distinguish "move forward" from "rotate in place",
+   and the reorder arrows must not repeat the step-type glyph (see UI review 02/08) */
+const SV='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+const SR='<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+const ICON={
+  fwd:   SV+'<path d="M12 20V5"/><path d="M5.5 11.5 12 5l6.5 6.5"/></svg>',
+  back:  SV+'<path d="M12 4v15"/><path d="M18.5 12.5 12 19l-6.5-6.5"/></svg>',
+  left:  SR+'<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>',
+  right: SR+'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>',
+  sound: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>',
+  led:   '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="6" fill="currentColor"/></svg>',
+  pause: '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>',
+  up:    '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>',
+  down:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>',
+  dup:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg>',
+  del:   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+};
 const STEP_DEFS={
-  fwd:{icon:'▲',params:{mm:150}},  back:{icon:'▼',params:{mm:150}},
-  left:{icon:'◀',params:{deg:90}}, right:{icon:'▶',params:{deg:90}},
-  sound:{icon:'♪',params:{idx:5}}, led:{icon:'●',params:{color:'r'}}, pause:{icon:'⏸',params:{ms:500}},
+  fwd:{icon:ICON.fwd,params:{mm:150}},  back:{icon:ICON.back,params:{mm:150}},
+  left:{icon:ICON.left,params:{deg:90}}, right:{icon:ICON.right,params:{deg:90}},
+  sound:{icon:ICON.sound,params:{idx:5}}, led:{icon:ICON.led,params:{color:'r'}}, pause:{icon:ICON.pause,params:{ms:500}},
 };
 const STEP_LABEL={fwd:'aForward',back:'aBack',left:'aLeft',right:'aRight',sound:'aSound',led:'aLed',pause:'aPause'};
 function clampSound(n){ n=Math.floor(Number(n)); if(!isFinite(n)||n<0)n=0; if(n>998)n=998; return n; }
 
-function addStep(kind){ const d=STEP_DEFS[kind]; program.push(Object.assign({id:pseq++,kind},JSON.parse(JSON.stringify(d.params)))); renderSteps(); persistProgram(); }
-function removeStep(id){ program=program.filter(s=>s.id!==id); renderSteps(); persistProgram(); }
-function dupStep(id){ const i=program.findIndex(s=>s.id===id); if(i<0)return; program.splice(i+1,0,Object.assign({},program[i],{id:pseq++})); renderSteps(); persistProgram(); }
+function addStep(kind){ const d=STEP_DEFS[kind]; program.push(Object.assign({id:pseq++,kind},JSON.parse(JSON.stringify(d.params)))); disarmClear(); renderSteps(); persistProgram(); updateProgCount(); }
+function removeStep(id){ program=program.filter(s=>s.id!==id); disarmClear(); renderSteps(); persistProgram(); updateProgCount(); }
+function dupStep(id){ const i=program.findIndex(s=>s.id===id); if(i<0)return; program.splice(i+1,0,Object.assign({},program[i],{id:pseq++})); disarmClear(); renderSteps(); persistProgram(); updateProgCount(); }
 function moveStep(id,dir){ const i=program.findIndex(s=>s.id===id),j=i+dir; if(i<0||j<0||j>=program.length)return; [program[i],program[j]]=[program[j],program[i]]; renderSteps(); persistProgram(); }
-function clearProgram(){ if(running)return; program=[]; renderSteps(); persistProgram(); }
+/* two-step delete: the first tap arms the button for 3 s, the second wipes.
+   A whole program used to disappear on a single mistap, with no undo. */
+let clearArmed=null;
+function clearProgram(){
+  if(running || !program.length) return;
+  const btn=document.getElementById('clearBtn'), lab=document.getElementById('clearLabel');
+  if(!clearArmed){
+    if(btn) btn.classList.add('confirm');
+    if(lab) lab.textContent=t('clearConfirm').replace('{n}',program.length);
+    clearArmed=setTimeout(disarmClear,3000);
+    return;
+  }
+  disarmClear();
+  program=[]; renderSteps(); persistProgram(); updateProgCount();
+}
+function disarmClear(){
+  if(clearArmed){ clearTimeout(clearArmed); clearArmed=null; }
+  const btn=document.getElementById('clearBtn'), lab=document.getElementById('clearLabel');
+  if(btn) btn.classList.remove('confirm');
+  if(lab) lab.textContent=t('clear');
+}
 function setStepParam(id,key,val){ const s=program.find(x=>x.id===id); if(s){ s[key]=val; persistProgram(); } }
 function setSeg(id,key,val,btn){ setStepParam(id,key,val); btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); }
 
@@ -735,19 +858,34 @@ function renderSteps(){
     else if(s.kind==='left'||s.kind==='right')mid=`<input type="number" inputmode="numeric" min="0" value="${s.deg}" oninput="setStepParam(${s.id},'deg',clampU32(this.value))"><span class="unit">°</span>`;
     else if(s.kind==='sound')                 mid=`<input type="number" inputmode="numeric" min="0" max="998" value="${s.idx}" oninput="setStepParam(${s.id},'idx',clampSound(this.value))"><span class="unit">x###</span>`;
     else if(s.kind==='pause')                 mid=`<input type="number" inputmode="numeric" min="0" value="${s.ms}" oninput="setStepParam(${s.id},'ms',clampU32(this.value))"><span class="unit">ms</span>`;
-    else if(s.kind==='led')                   mid=`<div class="seg-mini" data-k="color">${['r','g','b'].map(v=>`<button class="${s.color===v?'active':''}" onclick="setSeg(${s.id},'color','${v}',this)">${({r:'Red',g:'Grn',b:'Cyan'})[v]}</button>`).join('')}</div>`;
+    else if(s.kind==='led')                   mid=`<div class="seg-mini" data-k="color">${['r','g','b'].map(v=>`<button class="${s.color===v?'active':''}" onclick="setSeg(${s.id},'color','${v}',this)">${t({r:'colR',g:'colG',b:'colB'}[v])}</button>`).join('')}</div>`;
     row.innerHTML=
       `<span class="step-idx">${i+1}</span>`+
       `<span class="step-icon" title="${t(STEP_LABEL[s.kind])}">${def.icon}</span>`+
       mid+
       `<span class="spacer"></span>`+
-      `<button class="ic" onclick="moveStep(${s.id},-1)">▲</button>`+
-      `<button class="ic" onclick="moveStep(${s.id},1)">▼</button>`+
-      `<button class="ic" onclick="dupStep(${s.id})">⧉</button>`+
-      `<button class="ic" onclick="removeStep(${s.id})">✕</button>`;
+      `<button class="ic" aria-label="${t('sUp')}" onclick="moveStep(${s.id},-1)">${ICON.up}</button>`+
+      `<button class="ic" aria-label="${t('sDown')}" onclick="moveStep(${s.id},1)">${ICON.down}</button>`+
+      `<button class="ic" aria-label="${t('sDup')}" onclick="dupStep(${s.id})">${ICON.dup}</button>`+
+      `<span class="ic-gap"></span>`+
+      `<button class="ic" aria-label="${t('sDel')}" onclick="removeStep(${s.id})">${ICON.del}</button>`;
     box.appendChild(row);
   });
   updateRunBtn();
+}
+/* step count in the card header */
+function updateProgCount(){
+  const el=document.getElementById('progCount');
+  if(el) el.textContent = program.length ? '· '+program.length : '';
+}
+/* collapse/expand the program card */
+function toggleProg(){
+  const head=document.getElementById('progHead'), body=document.getElementById('progBody');
+  if(!head||!body) return;
+  const open = head.getAttribute('aria-expanded')!=='true';
+  head.setAttribute('aria-expanded', open?'true':'false');
+  body.hidden = !open;
+  localStorage.setItem('ps_prog_open', open?'1':'0');
 }
 function persistProgram(){ localStorage.setItem('ps_program',JSON.stringify(program)); }
 function restoreProgram(){ try{ const r=localStorage.getItem('ps_program'); if(r){ program=JSON.parse(r)||[]; pseq=program.reduce((m,s)=>Math.max(m,s.id),0)+1; } }catch(e){ program=[]; } }
@@ -757,6 +895,7 @@ function updateRunBtn(){
   if(rb) rb.disabled=!(state.connected && program.length && !running);
   if(sb) sb.disabled=!running;
   document.querySelectorAll('.palette .btn').forEach(b=>b.disabled=running);
+  const cb=document.getElementById('clearBtn'); if(cb) cb.disabled=running||!program.length;
   const rep=document.getElementById('repeats'); if(rep) rep.disabled=running;
 }
 function highlightStep(i){ currentIdx=i; document.querySelectorAll('.steps .step-row').forEach((r,idx)=>{ r.classList.toggle('current',idx===i); r.classList.toggle('done', i>=0&&idx<i); }); }
@@ -838,16 +977,36 @@ function wireSeg(id,setter){
 wireSeg('ledDiode',v=>ledDiode=v);
 wireSeg('ledColor',v=>ledColor=v);
 
-/* preset chips */
+/* preset chips — highlight whichever chip matches the current field value,
+   on load and on manual typing, not only right after a click */
+function syncChips(){
+  document.querySelectorAll('.chip').forEach(c=>{
+    const inp=document.getElementById(c.dataset.target);
+    if(inp) c.classList.toggle('active', String(inp.value).trim()===String(c.dataset.val));
+  });
+}
 document.querySelectorAll('.chip').forEach(c=>{
   c.addEventListener('click',()=>{
     const inp=document.getElementById(c.dataset.target);
     inp.value=c.dataset.val;
     inp.dispatchEvent(new Event('change'));
-    // visual active state within its column
-    c.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
-    c.classList.add('active');
+    syncChips(); updatePadLabels();
   });
+});
+
+/* show the value each pad button will send — nothing else said that
+   ▲▼ take Distance while the rotation buttons take Angle */
+function updatePadLabels(){
+  const d=document.getElementById('distance'), a=document.getElementById('angle');
+  if(!d||!a) return;
+  const dv=clampU32(d.value), av=clampU32(a.value);
+  const set=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; };
+  set('valDist',dv+' mm'); set('valDistB',dv+' mm');
+  set('valAngL',av+'°');   set('valAngR',av+'°');
+}
+['distance','angle'].forEach(id=>{
+  const el=document.getElementById(id);
+  if(el) el.addEventListener('input',()=>{ syncChips(); updatePadLabels(); });
 });
 
 /* persist distance/angle */
@@ -886,7 +1045,21 @@ restoreParams();
 restoreProgram();
 setLang(lang);
 renderSteps();
+updateProgCount();
 updateRunBtn();
+syncChips();
+updatePadLabels();
+/* program card starts open when there is something in it */
+(function initProgOpen(){
+  const saved=localStorage.getItem('ps_prog_open');
+  const open = saved===null ? program.length>0 : saved==='1';
+  const head=document.getElementById('progHead'), body=document.getElementById('progBody');
+  if(head) head.setAttribute('aria-expanded', open?'true':'false');
+  if(body) body.hidden=!open;
+  if(head) head.addEventListener('keydown',e=>{
+    if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggleProg(); }
+  });
+})();
 refreshLastBtn();
 checkCompat();
 logLine('PrimaSTEM Robot Control — ready');
